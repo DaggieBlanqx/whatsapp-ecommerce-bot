@@ -53,17 +53,26 @@ module.exports = class EcommerceStore {
                             err,
                         });
                     } else {
-                        let categories = JSON.parse(body);
-                        // shuffle the categories
-                        categories = categories.sort(() => Math.random() - 0.5);
-                        // [1, 2, 3, 4].sort(() => (Math.random() > 0.5) ? 1 : -1)
-                        console.log({
-                            categories: categories.length,
-                        });
-                        resolve({
-                            status: 'success',
-                            data: categories,
-                        });
+                        try {
+                            let categories = JSON.parse(body);
+                            // shuffle the categories
+                            categories = categories.sort(
+                                () => Math.random() - 0.5
+                            );
+                            // [1, 2, 3, 4].sort(() => (Math.random() > 0.5) ? 1 : -1)
+                            console.log({
+                                categories: categories.length,
+                            });
+                            resolve({
+                                status: 'success',
+                                data: categories,
+                            });
+                        } catch (err) {
+                            throw reject({
+                                status: 'failed',
+                                err,
+                            });
+                        }
                     }
                 }
             );
@@ -80,20 +89,27 @@ module.exports = class EcommerceStore {
                             err,
                         });
                     } else {
-                        let products = JSON.parse(body);
-                        // shuffle the products
-                        products = products.sort(() =>
-                            Math.random() > 0.5 ? 1 : -1
-                        );
-                        console.log({
-                            products: products.length,
-                        });
-                        let output = {
-                            status: 'success',
-                            data: products,
-                        };
+                        try {
+                            let products = JSON.parse(body);
+                            // shuffle the products
+                            products = products.sort(() =>
+                                Math.random() > 0.5 ? 1 : -1
+                            );
+                            console.log({
+                                products: products.length,
+                            });
+                            let output = {
+                                status: 'success',
+                                data: products,
+                            };
 
-                        resolve(output);
+                            resolve(output);
+                        } catch (err) {
+                            throw reject({
+                                status: 'failed',
+                                err,
+                            });
+                        }
                     }
                 }
             );
@@ -113,7 +129,7 @@ module.exports = class EcommerceStore {
         };
     }
 
-    async generateRandomGeoLocation() {
+    generateRandomGeoLocation() {
         let oneLocation =
             RandomGeoLocations[
                 Math.floor(Math.random() * RandomGeoLocations.length)

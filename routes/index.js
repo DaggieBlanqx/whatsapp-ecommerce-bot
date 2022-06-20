@@ -53,7 +53,6 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                     name: nameOfSender,
                     phoneNumber: recipientNumber,
                     cart: [],
-                    invoice: '',
                 });
             }
 
@@ -74,14 +73,6 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
             };
             let clearCart = ({ recipientNumber }) => {
                 DataStore.get(recipientNumber).cart = [];
-            };
-
-            let prepareInvoice = ({ recipientNumber, invoice_info }) => {
-                DataStore.get(recipientNumber).invoice = invoice_info;
-            };
-
-            let retrieveInvoice = ({ recipientNumber }) => {
-                return DataStore.get(recipientNumber).invoice;
             };
 
             let getCartTotal = async ({ recipientNumber }) => {
@@ -326,12 +317,11 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
 
                     text += `\n\nTotal: $${finalBill.total}`;
                     pdfInvoiceText += `\n\nTotal: $${finalBill.total}`;
-
                     text += `\n\nPlease select one of the following options:`;
 
-                    prepareInvoice({
-                        recipientNumber,
-                        invoice_info: pdfInvoiceText,
+                    Store.generateInvoice({
+                        order_details: pdfInvoiceText,
+                        file_path: `./invoice_${recipientNumber}.pdf`,
                     });
 
                     await Whatsapp.sendButtons({
@@ -375,7 +365,7 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                     clearCart({ recipientNumber });
 
                     setTimeout(async () => {
-                        let place = Store.getRandomLocation();
+                        let place = Store.generateRandomGeoLocation();
                         await Whatsapp.sendText({
                             recipientNumber: recipientNumber,
                             message: `Your order has been fulfilled. Come and pick it up here:`,
@@ -390,17 +380,11 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                     }, 5000);
                 }
                 if (button_id === 'print_invoice') {
-                    let invoice_path = `./invoice_${recipientNumber}.pdf`;
-
-                    Store.generateInvoice({
-                        order_details: retrieveInvoice({ recipientNumber }),
-                        file_path: invoice_path,
-                    });
                     // respond with a list of products
                     await Whatsapp.sendDocument({
                         recipientNumber: '254773841221',
                         file_name: `Invoice - #${recipientNumber}`,
-                        file_path: invoice_path,
+                        file_path: `./invoice_${recipientNumber}.pdf`,
                     });
                 }
             }
