@@ -44,7 +44,7 @@ class EcommerceStore {
     async getAllCategories() {
         return new Promise((resolve, reject) => {
             request.get(
-                `${this.baseUrl}/products/categories?limit=10`,
+                `${this.baseUrl}/products/categories?limit=100`,
                 (err, res, body) => {
                     if (err) {
                         throw reject({
@@ -134,16 +134,8 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
             let typeOfMsg = data.msgType;
             let message_id = data.message.id;
 
+            let nameOfSender = data.contacts.profile.name;
             if (typeOfMsg === 'textMessage') {
-                // let msg_body = data.message.text.body; // extract the message text from the webhook payload`
-                let msg_body = JSON.stringify(data);
-                let nameOfSender = data.contacts.profile.name;
-                // await Whatsapp.sendText({
-                //     message: `Hello ${nameOfSender}\nReceived a message. Now here is an automated reply: ${msg_body}`,
-                //     recipientNumber: recipientNumber,
-                //     message_id,
-                // });
-
                 let listOfButtons = [
                     {
                         title: 'List some products',
@@ -205,31 +197,55 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
 
                 // get product from store
                 let product = await Store.getProductById(item_id);
-
+                let product_id = product.data.id;
                 let price = product.data.price;
                 let title = product.data.title;
                 let description = product.data.description;
                 let category = product.data.category;
                 let imageUrl = product.data.image;
-                let emojiRating = () => {
-                    let rating = product.data.rating;
-                    Math.floor(rating);
-                    //loop
-                };
+                let rating = product.data.rating;
+                let emojiRating = (rating) => {
+                    rating = Math.floor(rating || 0);
+                    let emojiIcon = '⭐';
+                    let output = [];
+                    // generate as many emojis as are rating
 
+                    for (var i = 0; i < rating; i++) {
+                        output.push(emojiIcon);
+                    }
+
+                    return output.join('');
+                };
                 await Whatsapp.sendImage({
                     recipientNumber,
                     url: imageUrl,
-                    message: `_title_: *${title}*\n\n\n_price_: $${price}\n\n\n_description_: ${description}\n\n\n_category_:${category}\n\n\n`,
+                    message: `_Title_: *${title}*\n\n\n_Price_: $${price}\n\n\n_Description_: ${description}\n\n\n_category_:${category}\n\n\n_Rating_: ${emojiRating(
+                        rating?.rate
+                    )} by ${rating?.count || 0} shoppers.`,
                 });
-                // console.log({
-                //     product,
-                //     rating: product.data.rating
-                // });
-                // ⭐⭐⭐⭐ 4.8
-                await Whatsapp.sendText({
-                    message: `Received a list message.`,
+
+                // send buy buttons
+
+                let listOfButtons = [
+                    {
+                        title: 'Buy Now',
+                        id: `buy_product_${product_id}`,
+                    },
+                    {
+                        title: 'Speak to a human',
+                        id: 'speak_to_human',
+                    },
+                    {
+                        title: 'See others',
+                        id: 'see_products',
+                    },
+                ];
+
+                await Whatsapp.sendButtons({
+                    message: `${nameOfSender}, You selected the product above\nWhat do you want to do next?`,
                     recipientNumber: recipientNumber,
+                    message_id,
+                    listOfButtons: listOfButtons,
                 });
             } else if (typeOfMsg === 'replyButtonMessage') {
                 let selectedButton = data.message.button_reply;
