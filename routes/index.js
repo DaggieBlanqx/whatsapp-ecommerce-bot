@@ -172,10 +172,6 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                     case 'see_products':
                         // respond with a list of products
                         let categories = await Store.getAllCategories();
-                        // console.log({
-                        //     categories,
-                        // });
-                        console.log('Got categories');
                         if (categories.status !== 'success') {
                             await Whatsapp.sendText({
                                 message: `Sorry, I could not get the categories.`,
@@ -193,14 +189,37 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                                         );
                                     if (product.status === 'success') {
                                         return {
-                                            title: `Top 3 #${category}`,
+                                            title: `Top 3 in #${category}`,
                                             rows: product.data.map(
                                                 (product) => {
+                                                    let trackable_id = `${product.id
+                                                        .toString()
+                                                        .substring(
+                                                            0,
+                                                            256
+                                                        )}_${category}_${recipientNumber}`;
+                                                    let title = (() =>
+                                                        `${product.title.substring(
+                                                            0,
+                                                            21
+                                                        )}...`)();
+                                                    let description = (() => {
+                                                        let price =
+                                                            product.price;
+                                                        let description =
+                                                            product.description;
+                                                        let output =
+                                                            `$${price}\n${description}`.substring(
+                                                                0,
+                                                                69
+                                                            );
+                                                        return `${output}...`;
+                                                    })();
                                                     return {
-                                                        id: product.id.toString().substring(0, 256),
-                                                        title: product.title.substring(0, 24),
-                                                        description: product.description.substring(0, 72),
-                                                    }
+                                                        id: trackable_id,
+                                                        title,
+                                                        description,
+                                                    };
                                                 }
                                             ),
                                         };
@@ -209,9 +228,8 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                             );
                         };
                         let listOfSections = await _listOfSections();
+                        listOfSections = listOfSections.slice(0, 3);
 
-                        //ensure only 10 items in the array
-                        listOfSections = listOfSections.slice(0, 3); 
                         await Whatsapp.sendList({
                             recipientNumber: from,
                             headerText: 'Black Friday Top 3 of 3',
@@ -219,82 +237,6 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                                 'We have great products lined up for you based on your previous shopping history.\nPlease select one of the products below.',
                             footerText: 'Powered by: Blanqx LLC',
                             listOfSections,
-                            _listOfSections: [
-                                {
-                                    title: 'Top 3 Fashion',
-                                    rows: [
-                                        {
-                                            title: 'Black LVX T-Shirt',
-                                            description:
-                                                'KES 2999.00\nLVX is a warm cotton t-shirt',
-                                            id: 'SKU12_black_lvx_tshirt',
-                                        },
-                                        {
-                                            title: 'Purple hoodie',
-                                            description:
-                                                'KES 1999.00\nPurple hoodie with a Logrocket logo',
-                                            id: 'SKU13_purple_hoodie',
-                                        },
-                                        {
-                                            title: 'Air Jordan 1',
-                                            description:
-                                                'KES 10999.00\nWe move where others do not.Wanna fly?',
-                                            id: 'SKU14_air_jordan_1',
-                                        },
-                                    ],
-                                },
-                                {
-                                    title: 'Top 3 Gadgets',
-                                    rows: [
-                                        {
-                                            title: 'Apple Watch',
-                                            description:
-                                                'KES 75999.00\nTime is finite, enjoy every second of it',
-                                            id: 'SKU15_apple_watch',
-                                        },
-                                        {
-                                            title: 'Surface Pro',
-                                            description: `KES 59999.00\nDon't just surf the web, surf the world`,
-                                            id: 'SKU16_surface_pro',
-                                        },
-                                        {
-                                            title: 'Xiaomi Beats Speaker',
-                                            description: `KES 45699\nIt is in how your heartbeats, the way Xiaomi Beats.`,
-                                            id: 'SKU17_xiaomi_beats_speaker',
-                                        },
-                                    ],
-                                },
-                                {
-                                    title: 'Top 3 Kitchen',
-                                    rows: [
-                                        {
-                                            title: 'Portable Hand Mixer',
-                                            description: `KES7899\nTempt sweetbuds by mixing your favorite food uniformly.`,
-                                            id: 'SKU18_portable_hand_mixer',
-                                        },
-                                        {
-                                            title: 'Non-stick waffle-maker',
-                                            description: `KES7899\nGreat Waffles are made with the best ingredients.`,
-                                            id: 'SKU19_non_stick_waffle_maker',
-                                        },
-                                        {
-                                            title: '6-set Cooking Spoons',
-                                            description: `KES7899\nHold thy happiness right.`,
-                                            id: 'SKU20_6_set_cooking_spoons',
-                                        },
-                                    ],
-                                },
-                                {
-                                    title: '1 random pick',
-                                    rows: [
-                                        {
-                                            title: 'Nivea Icy Soap',
-                                            description: `KES899\nStay hydrated and refreshed. Nourish your skin.`,
-                                            id: 'SKU21_nivea_icy_soap',
-                                        },
-                                    ],
-                                },
-                            ],
                         });
                         break;
                     case 'track_order':
