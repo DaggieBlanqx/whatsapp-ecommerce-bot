@@ -306,8 +306,10 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                 } else if (button_id === 'checkout') {
                     // respond with a list of products
                     let finalBill = await getCartTotal({ recipientNumber });
-                    let pdfInvoiceText = `\nTotal: $${finalBill.total}`;
-                    let text = `Your total bill is: $${finalBill.total}.\nYou have ${finalBill.numberOfItems} items in your cart.\nYour cart contains:`;
+                    let pdfInvoiceText = `\nDate: ${new Date().toLocaleDateString()}`;
+
+                    let text = `\nDate: ${new Date().toLocaleDateString()}`;
+                    text += `\nYou have ${finalBill.numberOfItems} items in your cart.\nYour cart contains:`;
 
                     finalBill.products.forEach((item, index) => {
                         text += `\n👉🏿 ${item.title} - $${item.price}`;
@@ -315,6 +317,9 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                             item.price
                         }`;
                     });
+
+                    text += `\n\nTotal: $${finalBill.total}`;
+                    pdfInvoiceText += `\n\nTotal: $${finalBill.total}`;
 
                     text += `\n\nPlease select one of the following options:`;
 
