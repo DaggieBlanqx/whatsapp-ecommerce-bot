@@ -68,11 +68,13 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                     DataStore.get(recipientNumber).cart.push(item);
                 }
             };
-            let removeFromCart = ({ product_id, recipientNumber }) =>
-                DataStore.get(recipientNumber).cart.splice(
-                    DataStore.get(recipientNumber).cart.indexOf(product_id),
-                    1
-                );
+            let removeFromCart = ({ product_id, recipientNumber }) => {
+                let cart = DataStore.get(recipientNumber).cart;
+                let item = cart.find((item) => item.has(product_id));
+                if (item) {
+                    cart.splice(cart.indexOf(item), 1);
+                }
+            };
             let listOfItemsCart = ({ recipientNumber }) => {
                 let items = DataStore.get(recipientNumber).cart.map((item) => {
                     let product = item.get(item.keys().next().value);
@@ -84,6 +86,7 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
             };
             let clearCart = ({ recipientNumber }) =>
                 (DataStore.get(recipientNumber).cart = []);
+
             let getCartTotal = async ({ recipientNumber }) => {
                 let total = 0;
                 let products = listOfItemsCart({ recipientNumber });
@@ -100,7 +103,7 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
             if (typeOfMsg === 'textMessage') {
                 let listOfButtons = [
                     {
-                        title: 'List some products',
+                        title: 'View some products',
                         id: 'see_categories',
                     },
                     {
@@ -146,7 +149,7 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                 };
                 let text = `_Title_: *${title}*\n\n\n_Description_: ${description}\n\n\n_Price_: $${price}\n_Category_: ${category}\n_Rated_: ${emojiRating(
                     rating?.rate
-                )}\n\n_Bought${rating?.count || 0} times_.`;
+                )}\n\n${rating?.count || 0} shoppers liked this product.`;
                 await Whatsapp.sendImage({
                     recipientNumber,
                     url: imageUrl,
@@ -301,7 +304,7 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                     ];
 
                     await Whatsapp.sendButtons({
-                        message: `Your cart has been updated.\nNumber of items in cart: ${numberOfItemsInCart} items.\n\nWhat do you want to do next?`,
+                        message: `Your cart has been updated.\nNumber of items in cart: ${numberOfItemsInCart}.\n\nWhat do you want to do next?`,
                         recipientNumber: recipientNumber,
                         message_id,
                         listOfButtons: listOfButtons,
@@ -358,6 +361,8 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                             },
                         ],
                     });
+
+                    clearCart({ recipientNumber });
 
                     setTimeout(async () => {
                         let oneLocation =
