@@ -21,7 +21,7 @@ class EcommerceStore {
     async getAllCategories() {
         return new Promise((resolve, reject) => {
             request.get(
-                `${this.baseUrl}/products/categories?limit=3`,
+                `${this.baseUrl}/products/categories?limit=10`,
                 (err, res, body) => {
                     if (err) {
                         throw reject({
@@ -29,9 +29,16 @@ class EcommerceStore {
                             err,
                         });
                     } else {
+                        let categories = JSON.parse(body);
+                        // shuffle the categories
+                        categories = categories.sort(() => Math.random() - 0.5);
+                        // [1, 2, 3, 4].sort(() => (Math.random() > 0.5) ? 1 : -1)
+                        console.log({
+                            categories: categories.length,
+                        });
                         resolve({
                             status: 'success',
-                            data: JSON.parse(body),
+                            data: categories,
                         });
                     }
                 }
@@ -41,7 +48,7 @@ class EcommerceStore {
     async getProductsInCategory(categoryId) {
         return new Promise((resolve, reject) => {
             request.get(
-                `${this.baseUrl}/products/category/${categoryId}?limit=3`,
+                `${this.baseUrl}/products/category/${categoryId}?limit=10`,
                 (err, res, body) => {
                     if (err) {
                         throw reject({
@@ -49,9 +56,17 @@ class EcommerceStore {
                             err,
                         });
                     } else {
+                        let products = JSON.parse(body);
+                        // shuffle the products
+                        products = products.sort(() =>
+                            Math.random() > 0.5 ? 1 : -1
+                        );
+                        console.log({
+                            products: products.length,
+                        });
                         let output = {
                             status: 'success',
-                            data: JSON.parse(body),
+                            data: products,
                         };
 
                         resolve(output);
@@ -91,7 +106,7 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
         let data = Whatsapp.parseMessage(req.body);
 
         if (data && !data.isNotificationMessage) {
-            let from = data.message.from; // extract the phone number from the webhook payload
+            let recipientNumber = data.message.from; // extract the phone number from the webhook payload
             let typeOfMsg = data.msgType;
             let message_id = data.message.id;
 
@@ -101,7 +116,7 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                 let nameOfSender = data.contacts.profile.name;
                 // await Whatsapp.sendText({
                 //     message: `Hello ${nameOfSender}\nReceived a message. Now here is an automated reply: ${msg_body}`,
-                //     recipientNumber: from,
+                //     recipientNumber: recipientNumber,
                 //     message_id,
                 // });
 
@@ -121,7 +136,7 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                 ];
                 await Whatsapp.sendButtons({
                     message: `Hey ${nameOfSender}, \nYou are speaking to a chatbot.\nWhat do you want to do next?`,
-                    recipientNumber: from,
+                    recipientNumber: recipientNumber,
                     message_id,
                     listOfButtons,
                 });
@@ -130,32 +145,32 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
             } else if (typeOfMsg === 'mediaMessage') {
                 await Whatsapp.sendText({
                     message: `Received a media message.`,
-                    recipientNumber: from,
+                    recipientNumber: recipientNumber,
                 });
             } else if (typeOfMsg === 'locationMessage') {
                 await Whatsapp.sendText({
                     message: `Received a location message.`,
-                    recipientNumber: from,
+                    recipientNumber: recipientNumber,
                 });
             } else if (typeOfMsg === 'contactMessage') {
                 await Whatsapp.sendText({
                     message: `Received a contact message.`,
-                    recipientNumber: from,
+                    recipientNumber: recipientNumber,
                 });
             } else if (typeOfMsg === 'stickerMessage') {
                 await Whatsapp.sendText({
                     message: `Received a sticker message.`,
-                    recipientNumber: from,
+                    recipientNumber: recipientNumber,
                 });
             } else if (typeOfMsg === 'adMessage') {
                 await Whatsapp.sendText({
                     message: `Received an ad message.`,
-                    recipientNumber: from,
+                    recipientNumber: recipientNumber,
                 });
             } else if (typeOfMsg === 'quickReplyMessage') {
                 await Whatsapp.sendText({
                     message: `Received a quick reply message.`,
-                    recipientNumber: from,
+                    recipientNumber: recipientNumber,
                 });
             } else if (typeOfMsg === 'listMessage') {
                 // which product is the user interested in?
@@ -163,7 +178,7 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
 
                 await Whatsapp.sendText({
                     message: `Received a list message.`,
-                    recipientNumber: from,
+                    recipientNumber: recipientNumber,
                 });
             } else if (typeOfMsg === 'replyButtonMessage') {
                 let selectedButton = data.message.button_reply;
@@ -175,21 +190,26 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                         if (categories.status !== 'success') {
                             await Whatsapp.sendText({
                                 message: `Sorry, I could not get the categories.`,
-                                recipientNumber: from,
+                                recipientNumber: recipientNumber,
                                 message_id,
                             });
                         }
+                        // limit to 3 categories
+                        let listOfCategories = categories.data.slice(0, 3);
 
                         let _listOfSections = async () => {
                             return Promise.all(
-                                categories.data.map(async (category) => {
+                                listOfCategories.map(async (category) => {
                                     let product =
                                         await Store.getProductsInCategory(
                                             category
                                         );
                                     if (product.status === 'success') {
                                         return {
-                                            title: `Top 3 in #${category}`,
+                                            title: `Top 3 in #${category}`.substring(
+                                                0,
+                                                24
+                                            ),
                                             rows: product.data.map(
                                                 (product) => {
                                                     let trackable_id = `${product.id
@@ -228,10 +248,18 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                             );
                         };
                         let listOfSections = await _listOfSections();
-                        listOfSections = listOfSections.slice(0, 3);
+                        listOfSections = listOfSections.map((section) => {
+                            return {
+                                title: section.title,
+                                rows: section.rows.slice(0, 3),
+                            };
+                        });
+                        console.log({
+                            len: listOfSections.length,
+                        });
 
                         await Whatsapp.sendList({
-                            recipientNumber: from,
+                            recipientNumber: recipientNumber,
                             headerText: 'Black Friday Top 3 of 3',
                             bodyText:
                                 'We have great products lined up for you based on your previous shopping history.\nPlease select one of the products below.',
@@ -249,11 +277,11 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                                 )
                             ];
                         await Whatsapp.sendText({
-                            recipientNumber: from,
+                            recipientNumber: recipientNumber,
                             message: `Your order is on the way. Here is where we are at now:`,
                         });
                         await Whatsapp.sendLocation({
-                            recipientNumber: from,
+                            recipientNumber: recipientNumber,
                             latitude: oneLocation.latitude,
                             longitude: oneLocation.longitude,
                             name: 'Mom-N-Pop Shop',
@@ -263,17 +291,17 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                     case 'speak_to_human':
                         // respond with a list of human resources
                         await Whatsapp.sendText({
-                            recipientNumber: from,
+                            recipientNumber: recipientNumber,
                             message: `Not to brag, but unlike humans, chatbots are super fast⚡, we never sleep, never rest, never take lunch🍽 and can multitask.\n\nAnway don't fret, a hoooooman will 📞contact you soon.\n\nWanna blast☎ his/her phone😈?\nHere are the contact details:`,
                         });
 
                         await Whatsapp.sendContact({
-                            recipientNumber: from,
+                            recipientNumber: recipientNumber,
                         });
                         break;
                     default:
                         await Whatsapp.sendText({
-                            recipientNumber: from,
+                            recipientNumber: recipientNumber,
                             message:
                                 'Sorry, I did not understand your request.',
                         });
