@@ -116,36 +116,6 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                 });
 
                 // Respond by sending buttons to the user
-            } else if (typeOfMsg === 'mediaMessage') {
-                await Whatsapp.sendText({
-                    message: `Received a media message.`,
-                    recipientNumber: recipientNumber,
-                });
-            } else if (typeOfMsg === 'locationMessage') {
-                await Whatsapp.sendText({
-                    message: `Received a location message.`,
-                    recipientNumber: recipientNumber,
-                });
-            } else if (typeOfMsg === 'contactMessage') {
-                await Whatsapp.sendText({
-                    message: `Received a contact message.`,
-                    recipientNumber: recipientNumber,
-                });
-            } else if (typeOfMsg === 'stickerMessage') {
-                await Whatsapp.sendText({
-                    message: `Received a sticker message.`,
-                    recipientNumber: recipientNumber,
-                });
-            } else if (typeOfMsg === 'adMessage') {
-                await Whatsapp.sendText({
-                    message: `Received an ad message.`,
-                    recipientNumber: recipientNumber,
-                });
-            } else if (typeOfMsg === 'quickReplyMessage') {
-                await Whatsapp.sendText({
-                    message: `Received a quick reply message.`,
-                    recipientNumber: recipientNumber,
-                });
             } else if (typeOfMsg === 'listMessage') {
                 // which product is the user interested in?
                 // Respond with an image of the product and a button to buy it directly from the chatbot
@@ -234,30 +204,10 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                         });
 
                     await Whatsapp.sendButtons({
-                        message: `${nameOfSender}, We have several categories.\nChoose one of them.`,
+                        message: `We have several categories.\nChoose one of them.`,
                         recipientNumber: recipientNumber,
                         message_id,
                         listOfButtons: listOfButtons,
-                    });
-                } else if (button_id === 'track_order') {
-                    // respond with a list of georaphical locations of orders
-
-                    let oneLocation =
-                        RandomGeoLocations[
-                            Math.floor(
-                                Math.random() * RandomGeoLocations.length
-                            )
-                        ];
-                    await Whatsapp.sendText({
-                        recipientNumber: recipientNumber,
-                        message: `Your order is on the way. Here is where we are at now:`,
-                    });
-                    await Whatsapp.sendLocation({
-                        recipientNumber: recipientNumber,
-                        latitude: oneLocation.latitude,
-                        longitude: oneLocation.longitude,
-                        name: 'Mom-N-Pop Shop',
-                        address: oneLocation.address,
                     });
                 } else if (button_id === 'speak_to_human') {
                     // respond with a list of human resources
