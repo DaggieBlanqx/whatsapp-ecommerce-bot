@@ -8,10 +8,25 @@ const Whatsapp = new WhatsappCloudAPI({
     WABA_ID: process.env.Meta_WA_wabaId,
 });
 
+Whatsapp.sendDocument({
+    recipientNumber: '254773841221',
+    caption: 'Your invoice.',
+    // url: 'http://pdfkit.org/demo/out.pdf',
+
+    file_path: './output.pdf',
+    file_name: 'Invoice #123',
+})
+    .then((output) => {
+        console.log({ output });
+    })
+    .catch((err) => {
+        console.log({ err });
+    });
+
 /*
 
 Whatsapp._uploadMedia({
-    filePath: './sample-image.jpg',
+    file_path: './sample-image.jpg',
 })
     .then((output) => {
         console.log({ output });
@@ -38,16 +53,16 @@ Whatsapp._uploadMedia({
     });
 */
 
-Whatsapp.sendImage({
-    recipientNumber: '254773841221',
-    url: 'https://i.pravatar.cc/',
-    message: ` Hello World\nfrom daggie`,
-})
-    .then((output) => {
-        // console.log({ output });
-        let resp = output.response;
-        console.log({ resp });
-    })
-    .catch((err) => {
-        console.log({ err });
-    });
+// Whatsapp.sendImage({
+//     recipientNumber: '254773841221',
+//     url: 'https://i.pravatar.cc/',
+//     message: ` Hello World\nfrom daggie`,
+// })
+//     .then((output) => {
+//         // console.log({ output });
+//         let resp = output.response;
+//         console.log({ resp });
+//     })
+//     .catch((err) => {
+//         console.log({ err });
+//     });

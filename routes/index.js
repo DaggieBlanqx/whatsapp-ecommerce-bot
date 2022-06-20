@@ -1,6 +1,6 @@
 'use strict';
 const router = require('express').Router();
-const request = require('request');
+
 // const WhatsappCloudAPI = require('whatsappcloudapi_wrapper');
 const WhatsappCloudAPI = require('./../../whatsappcloudapi/index.js');
 const Whatsapp = new WhatsappCloudAPI({
@@ -10,96 +10,9 @@ const Whatsapp = new WhatsappCloudAPI({
 });
 
 const RandomGeoLocations = require('../utils/geolocation_MOCK_DATA.json');
-const e = require('express');
 
-class EcommerceStore {
-    constructor() {
-        this.baseUrl = 'https://fakestoreapi.com';
-    }
-
-    async getAllProducts() {}
-    async getProductById(productId) {
-        return new Promise((resolve, reject) => {
-            request.get(
-                `${this.baseUrl}/products/${productId}`,
-                (err, res, body) => {
-                    if (err) {
-                        throw reject({
-                            status: 'failed',
-                            err,
-                        });
-                    } else {
-                        let product = JSON.parse(body);
-
-                        let output = {
-                            status: 'success',
-                            data: product,
-                        };
-
-                        resolve(output);
-                    }
-                }
-            );
-        });
-    }
-    async getAllCategories() {
-        return new Promise((resolve, reject) => {
-            request.get(
-                `${this.baseUrl}/products/categories?limit=100`,
-                (err, res, body) => {
-                    if (err) {
-                        throw reject({
-                            status: 'failed',
-                            err,
-                        });
-                    } else {
-                        let categories = JSON.parse(body);
-                        // shuffle the categories
-                        categories = categories.sort(() => Math.random() - 0.5);
-                        // [1, 2, 3, 4].sort(() => (Math.random() > 0.5) ? 1 : -1)
-                        console.log({
-                            categories: categories.length,
-                        });
-                        resolve({
-                            status: 'success',
-                            data: categories,
-                        });
-                    }
-                }
-            );
-        });
-    }
-    async getProductsInCategory(categoryId) {
-        return new Promise((resolve, reject) => {
-            request.get(
-                `${this.baseUrl}/products/category/${categoryId}?limit=10`,
-                (err, res, body) => {
-                    if (err) {
-                        throw reject({
-                            status: 'failed',
-                            err,
-                        });
-                    } else {
-                        let products = JSON.parse(body);
-                        // shuffle the products
-                        products = products.sort(() =>
-                            Math.random() > 0.5 ? 1 : -1
-                        );
-                        console.log({
-                            products: products.length,
-                        });
-                        let output = {
-                            status: 'success',
-                            data: products,
-                        };
-
-                        resolve(output);
-                    }
-                }
-            );
-        });
-    }
-}
+const EcommerceStore = require('./../controllers/ecommerce_store.js');
+let DataStore = new Map();
 
 router.get('/meta_wa_callbackurl', (req, res) => {
     console.log('GET:Someone is pinging me!');
@@ -137,6 +50,49 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
             let message_id = data.message.id;
             let nameOfSender = data.contacts.profile.name;
 
+            if (!DataStore.get(recipientNumber)) {
+                DataStore.set(recipientNumber, {
+                    name: nameOfSender,
+                    phoneNumber: recipientNumber,
+                    cart: [],
+                });
+            }
+
+            let addToCart = async ({ product_id, recipientNumber }) => {
+                let raw_product = await Store.getProductById(product_id);
+                if (raw_product.status === 'success') {
+                    let product = raw_product.data;
+                    let item = new Map();
+                    item.set(product_id, product);
+                    console.log({ item, product });
+                    DataStore.get(recipientNumber).cart.push(item);
+                }
+            };
+            let removeFromCart = ({ product_id, recipientNumber }) =>
+                DataStore.get(recipientNumber).cart.splice(
+                    DataStore.get(recipientNumber).cart.indexOf(product_id),
+                    1
+                );
+            let listOfItemsCart = ({ recipientNumber }) => {
+                let items = DataStore.get(recipientNumber).cart.map((item) => {
+                    let product = item.get(item.keys().next().value);
+                    return product;
+                });
+
+                console.log({ items });
+                return items;
+            };
+            let clearCart = ({ recipientNumber }) =>
+                (DataStore.get(recipientNumber).cart = []);
+            let getCartTotal = async ({ recipientNumber }) => {
+                let total = 0;
+                let products = listOfItemsCart({ recipientNumber });
+                for (let product of products) {
+                    total += product.price;
+                }
+                return { total, products, numberOfItems: products.length };
+            };
+
             await Whatsapp.markMessageAsRead({
                 message_id,
             });
@@ -146,10 +102,6 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                     {
                         title: 'List some products',
                         id: 'see_categories',
-                    },
-                    {
-                        title: 'Track my order',
-                        id: 'track_order',
                     },
                     {
                         title: 'Speak to a human',
@@ -224,7 +176,7 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                 };
                 let text = `_Title_: *${title}*\n\n\n_Description_: ${description}\n\n\n_Price_: $${price}\n_Category_: ${category}\n_Rated_: ${emojiRating(
                     rating?.rate
-                )}\n\n_Bought${rating?.count || 0} times_.`
+                )}\n\n_Bought${rating?.count || 0} times_.`;
                 await Whatsapp.sendImage({
                     recipientNumber,
                     url: imageUrl,
@@ -235,8 +187,8 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
 
                 let listOfButtons = [
                     {
-                        title: 'Buy Now 🛒',
-                        id: `buy_product_${product_id}`,
+                        title: 'Add to cart🛒',
+                        id: `add_to_cart_${product_id}`,
                     },
                     {
                         title: 'Speak to a human',
@@ -253,6 +205,11 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                     recipientNumber: recipientNumber,
                     message_id,
                     listOfButtons: listOfButtons,
+                });
+
+                let currentUser = DataStore.get(recipientNumber);
+                console.log({
+                    currentUser,
                 });
             } else if (typeOfMsg === 'replyButtonMessage') {
                 let selectedButton = data.message.button_reply;
@@ -368,12 +325,99 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                     ];
                     await Whatsapp.sendList({
                         recipientNumber: recipientNumber,
-                        headerText: `🫰 #BlackFriday Offers: ${specificCategory}`,
-                        bodyText: `\nWe have great products lined up for you based on your previous shopping history🛍️.\n\nSanta 🎅 also made you a coupon code: *_${Math.floor(
+                        headerText: `🫰🏿 #BlackFriday Offers: ${specificCategory}`,
+                        bodyText: `\nWe have great products lined up for you based on your previous shopping history.\n\nSanta 🎅🏿 also made you a coupon code: *_${Math.floor(
                             Math.random() * 1234578
                         )}_*.\n\nPlease select one of the products below.`,
                         footerText: 'Powered by: BMI LLC',
                         listOfSections,
+                    });
+                } else if (button_id.startsWith('add_to_cart_')) {
+                    let product_id = button_id.split('add_to_cart_')[1];
+                    await addToCart({ recipientNumber, product_id });
+                    let numberOfItemsInCart = listOfItemsCart({
+                        recipientNumber,
+                    }).length;
+
+                    let listOfButtons = [
+                        {
+                            title: 'Checkout 🛍️',
+                            id: `checkout`,
+                        },
+                        {
+                            title: 'See more products',
+                            id: 'see_categories',
+                        },
+                    ];
+
+                    await Whatsapp.sendButtons({
+                        message: `Your cart has been updated.\nNumber of items in cart: ${numberOfItemsInCart} items.\n\nWhat do you want to do next?`,
+                        recipientNumber: recipientNumber,
+                        message_id,
+                        listOfButtons: listOfButtons,
+                    });
+                } else if (button_id === 'checkout') {
+                    // respond with a list of products
+                    let finalBill = await getCartTotal({ recipientNumber });
+
+                    let text = `Your total bill is: $${finalBill.total}\n`;
+                    text += `You have ${finalBill.numberOfItems} items in your cart.\n`;
+                    text += `Your cart is:`;
+                    console.log({
+                        finalBill,
+                    });
+                    finalBill.products.forEach((item) => {
+                        text += `\n👉🏿 ${item.title} - $${item.price}`;
+                    });
+                    text += `\n\nPlease select one of the following options:`;
+                    let listOfButtons = [
+                        {
+                            title: 'Pay with cash',
+                            id: 'pay_with_cash',
+                        },
+                        {
+                            title: 'Pay later',
+                            id: 'pay_later',
+                        },
+                    ];
+
+                    await Whatsapp.sendButtons({
+                        message: text,
+                        recipientNumber: recipientNumber,
+                        message_id,
+                        listOfButtons: listOfButtons,
+                    });
+                } else if (
+                    button_id === 'pay_with_cash' ||
+                    button_id === 'pay_later'
+                ) {
+                    // respond with a list of products
+
+                    await Whatsapp.sendButtons({
+                        recipientNumber: recipientNumber,
+                        message: `Thank you ${nameOfSender}.\n\nYour order will be delivered soon.`,
+                        message_id,
+                        listOfButtons: [
+                            {
+                                title: 'See more products',
+                                id: 'see_categories',
+                            },
+                            {
+                                title: 'Track your order',
+                                id: 'track_order',
+                            },
+                            {
+                                title: 'Print receipt',
+                                id: 'print_receipt',
+                            },
+                        ],
+                    });
+                } else if (button_id === 'print_receipt') {
+                    // respond with a list of products
+                    await Whatsapp.sendDocument({
+                        recipientNumber: '254773841221',
+                        file_name: 'Your receipt.',
+                        file_path: './output.pdf',
                     });
                 } else {
                     await Whatsapp.sendText({
