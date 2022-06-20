@@ -41,6 +41,7 @@ Whatsapp._uploadMedia({
 Whatsapp.sendImage({
     recipientNumber: '254773841221',
     url: 'https://i.pravatar.cc/',
+    message: ` Hello World\nfrom daggie`,
 })
     .then((output) => {
         // console.log({ output });

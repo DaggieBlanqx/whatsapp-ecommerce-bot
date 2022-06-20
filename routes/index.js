@@ -17,7 +17,30 @@ class EcommerceStore {
     }
 
     async getAllProducts() {}
-    async getProductById(productId) {}
+    async getProductById(productId) {
+        return new Promise((resolve, reject) => {
+            request.get(
+                `${this.baseUrl}/products/${productId}`,
+                (err, res, body) => {
+                    if (err) {
+                        throw reject({
+                            status: 'failed',
+                            err,
+                        });
+                    } else {
+                        let product = JSON.parse(body);
+
+                        let output = {
+                            status: 'success',
+                            data: product,
+                        };
+
+                        resolve(output);
+                    }
+                }
+            );
+        });
+    }
     async getAllCategories() {
         return new Promise((resolve, reject) => {
             request.get(
@@ -100,7 +123,7 @@ router.get('/meta_wa_callbackurl', (req, res) => {
 
 router.post('/meta_wa_callbackurl', async (req, res) => {
     console.log('POST: Someone is pinging me!');
-    return res.status(200).send('OK');
+    // return res.status(200).send('OK'); //BLANQX
     let Store = new EcommerceStore();
 
     try {
@@ -176,7 +199,34 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
             } else if (typeOfMsg === 'listMessage') {
                 // which product is the user interested in?
                 // Respond with an image of the product and a button to buy it directly from the chatbot
+                let selectedRadioBtn = data.message.list_reply;
+                let item = selectedRadioBtn?.id.split('_');
+                let [item_id, item_category, userAccount] = item;
 
+                // get product from store
+                let product = await Store.getProductById(item_id);
+
+                let price = product.data.price;
+                let title = product.data.title;
+                let description = product.data.description;
+                let category = product.data.category;
+                let imageUrl = product.data.image;
+                let emojiRating = () => {
+                    let rating = product.data.rating;
+                    Math.floor(rating);
+                    //loop
+                };
+
+                await Whatsapp.sendImage({
+                    recipientNumber,
+                    url: imageUrl,
+                    message: `_title_: *${title}*\n\n\n_price_: $${price}\n\n\n_description_: ${description}\n\n\n_category_:${category}\n\n\n`,
+                });
+                // console.log({
+                //     product,
+                //     rating: product.data.rating
+                // });
+                // ⭐⭐⭐⭐ 4.8
                 await Whatsapp.sendText({
                     message: `Received a list message.`,
                     recipientNumber: recipientNumber,
