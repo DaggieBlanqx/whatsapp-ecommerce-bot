@@ -3,6 +3,8 @@ const request = require('request');
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 
+const RandomGeoLocations = require('../controllers/geolocation_MOCK_DATA.json');
+
 module.exports = class EcommerceStore {
     constructor() {
         this.baseUrl = 'https://fakestoreapi.com';
@@ -99,8 +101,6 @@ module.exports = class EcommerceStore {
     }
 
     async generateInvoice({ order_details, file_path }) {
-        // return new Promise((resolve, reject) => {
-        // Create a document
         const doc = new PDFDocument();
         doc.pipe(fs.createWriteStream(file_path));
         doc.fontSize(25).text(order_details, 100, 100);
@@ -111,6 +111,13 @@ module.exports = class EcommerceStore {
                 file_path,
             },
         };
-        // });
+    }
+
+    async generateRandomGeoLocation() {
+        let oneLocation =
+            RandomGeoLocations[
+                Math.floor(Math.random() * RandomGeoLocations.length)
+            ];
+        return oneLocation;
     }
 };

@@ -9,8 +9,6 @@ const Whatsapp = new WhatsappCloudAPI({
     WABA_ID: process.env.Meta_WA_wabaId,
 });
 
-const RandomGeoLocations = require('../utils/geolocation_MOCK_DATA.json');
-
 const EcommerceStore = require('./../controllers/ecommerce_store.js');
 let DataStore = new Map();
 
@@ -68,13 +66,6 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                     DataStore.get(recipientNumber).cart.push(item);
                 }
             };
-            let removeFromCart = ({ product_id, recipientNumber }) => {
-                let cart = DataStore.get(recipientNumber).cart;
-                let item = cart.find((item) => item.has(product_id));
-                if (item) {
-                    cart.splice(cart.indexOf(item), 1);
-                }
-            };
             let listOfItemsCart = ({ recipientNumber }) => {
                 return DataStore.get(recipientNumber).cart.map((item) => {
                     let product = item.get(item.keys().next().value);
@@ -122,9 +113,9 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                         },
                     ],
                 });
+            }
 
-                // Respond by sending buttons to the user
-            } else if (typeOfMsg === 'listMessage') {
+            if (typeOfMsg === 'listMessage') {
                 // which product is the user interested in?
                 // Respond with an image of the product and a button to buy it directly from the chatbot
                 let selectedRadioBtn = data.message.list_reply;
@@ -133,6 +124,14 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
 
                 // get product from store
                 let product = await Store.getProductById(item_id);
+                if (product.status !== 'success') {
+                    await Whatsapp.sendText({
+                        message: `Sorry, I could not get the product.`,
+                        recipientNumber: recipientNumber,
+                        message_id,
+                    });
+                }
+
                 let product_id = product.data.id;
                 let price = product.data.price;
                 let title = product.data.title?.trim();
@@ -141,20 +140,20 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                 let imageUrl = product.data.image;
                 let rating = product.data.rating;
                 let emojiRating = (rating) => {
+                    // generate as many emojis as are rating
                     rating = Math.floor(rating || 0);
                     let emojiIcon = '⭐';
                     let output = [];
-                    // generate as many emojis as are rating
-
-                    for (var i = 0; i < rating; i++) {
-                        output.push(emojiIcon);
-                    }
-
+                    for (var i = 0; i < rating; i++) output.push(emojiIcon);
                     return output.join('');
                 };
-                let text = `_Title_: *${title}*\n\n\n_Description_: ${description}\n\n\n_Price_: $${price}\n_Category_: ${category}\n_Rated_: ${emojiRating(
-                    rating?.rate
-                )}\n\n${rating?.count || 0} shoppers liked this product.`;
+                let text = `_Title_: *${title}*\n\n\n`;
+                text += `_Description_: ${description}\n\n\n`;
+                text += `_Price_: $${price}\n`;
+                text += `_Category_: ${category}\n`;
+                text += `_Rated_: ${emojiRating(rating?.rate)}\n\n`;
+                text += `${rating?.count || 0} shoppers liked this product.`;
+
                 await Whatsapp.sendImage({
                     recipientNumber,
                     url: imageUrl,
@@ -180,11 +179,13 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                         },
                     ],
                 });
-            } else if (typeOfMsg === 'replyButtonMessage') {
+            }
+
+            if (typeOfMsg === 'replyButtonMessage') {
                 let selectedButton = data.message.button_reply;
                 let button_id = selectedButton?.id;
                 if (button_id === 'see_categories') {
-                    var categories = await Store.getAllCategories();
+                    let categories = await Store.getAllCategories();
                     if (categories.status !== 'success') {
                         await Whatsapp.sendText({
                             message: `Sorry, I could not get the categories.`,
@@ -208,7 +209,8 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                         message_id,
                         listOfButtons: listOfButtons,
                     });
-                } else if (button_id === 'speak_to_human') {
+                }
+                if (button_id === 'speak_to_human') {
                     // respond with a list of human resources
                     await Whatsapp.sendText({
                         recipientNumber: recipientNumber,
@@ -218,10 +220,12 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                     await Whatsapp.sendContact({
                         recipientNumber: recipientNumber,
                     });
-                } else if (button_id.startsWith('category_')) {
+                }
+
+                if (button_id.startsWith('category_')) {
                     let specificCategory = button_id.split('category_')[1];
                     // respond with a list of products
-                    var listOfProducts = await Store.getProductsInCategory(
+                    let listOfProducts = await Store.getProductsInCategory(
                         specificCategory
                     );
 
@@ -281,7 +285,8 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                         footerText: 'Powered by: BMI LLC',
                         listOfSections,
                     });
-                } else if (button_id.startsWith('add_to_cart_')) {
+                }
+                if (button_id.startsWith('add_to_cart_')) {
                     let product_id = button_id.split('add_to_cart_')[1];
                     await addToCart({ recipientNumber, product_id });
                     let numberOfItemsInCart = listOfItemsCart({
@@ -303,7 +308,8 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                             },
                         ],
                     });
-                } else if (button_id === 'checkout') {
+                }
+                if (button_id === 'checkout') {
                     // respond with a list of products
                     let finalBill = await getCartTotal({ recipientNumber });
                     let pdfInvoiceText = `\nDate: ${new Date().toLocaleDateString()}`;
@@ -343,7 +349,8 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                             },
                         ],
                     });
-                } else if (
+                }
+                if (
                     button_id === 'pay_with_cash' ||
                     button_id === 'pay_later'
                 ) {
@@ -368,25 +375,21 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                     clearCart({ recipientNumber });
 
                     setTimeout(async () => {
-                        let oneLocation =
-                            RandomGeoLocations[
-                                Math.floor(
-                                    Math.random() * RandomGeoLocations.length
-                                )
-                            ];
+                        let place = Store.getRandomLocation();
                         await Whatsapp.sendText({
                             recipientNumber: recipientNumber,
                             message: `Your order has been fulfilled. Come and pick it up here:`,
                         });
                         await Whatsapp.sendLocation({
                             recipientNumber: recipientNumber,
-                            latitude: oneLocation.latitude,
-                            longitude: oneLocation.longitude,
+                            latitude: place.latitude,
+                            longitude: place.longitude,
                             name: 'Mom-N-Pop Shop',
-                            address: oneLocation.address,
+                            address: place.address,
                         });
                     }, 5000);
-                } else if (button_id === 'print_invoice') {
+                }
+                if (button_id === 'print_invoice') {
                     let invoice_path = `./invoice_${recipientNumber}.pdf`;
 
                     Store.generateInvoice({
@@ -399,23 +402,12 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                         file_name: `Invoice - #${recipientNumber}`,
                         file_path: invoice_path,
                     });
-                } else {
-                    await Whatsapp.sendText({
-                        recipientNumber: recipientNumber,
-                        message: 'Sorry, I did not understand your request.',
-                    });
                 }
             }
 
             return res.sendStatus(200);
-        } else if (data && data.isNotificationMessage) {
-            console.log('got notification');
-
-            return res.sendStatus(200);
-        } else {
-            console.log('No data');
-            return res.sendStatus(500);
         }
+        return res.sendStatus(200);
     } catch (error) {
         //     console.error({ error });
         if (
