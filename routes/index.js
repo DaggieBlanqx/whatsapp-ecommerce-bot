@@ -413,6 +413,13 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
         }
     } catch (error) {
         console.error({ error });
+        if (
+            error.error_data.includes(
+                'older than the last-seen message in this conversation'
+            )
+        ) {
+            return res.sendStatus(200);
+        }
         return res.sendStatus(404);
     }
 });
