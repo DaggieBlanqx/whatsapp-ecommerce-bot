@@ -125,7 +125,7 @@ router.get('/meta_wa_callbackurl', (req, res) => {
 router.post('/meta_wa_callbackurl', async (req, res) => {
     console.log('POST: Someone is pinging me!');
 
-    // return res.status(200).send('OK'); //BLANQX
+    // return res.status(200).send('OK'); //BMI
     let Store = new EcommerceStore();
 
     try {
@@ -205,9 +205,9 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                 let product = await Store.getProductById(item_id);
                 let product_id = product.data.id;
                 let price = product.data.price;
-                let title = product.data.title;
-                let description = product.data.description;
-                let category = product.data.category;
+                let title = product.data.title?.trim();
+                let description = product.data.description?.trim();
+                let category = product.data.category?.trim();
                 let imageUrl = product.data.image;
                 let rating = product.data.rating;
                 let emojiRating = (rating) => {
@@ -222,12 +222,13 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
 
                     return output.join('');
                 };
+                let text = `_Title_: *${title}*\n\n\n_Description_: ${description}\n\n\n_Price_: $${price}\n_Category_: ${category}\n_Rated_: ${emojiRating(
+                    rating?.rate
+                )}\n\n_Bought${rating?.count || 0} times_.`
                 await Whatsapp.sendImage({
                     recipientNumber,
                     url: imageUrl,
-                    message: `_Title_: *${title}*\n\n\n_Price_: $${price}\n\n\n_Description_: ${description}\n\n\n_category_:${category}\n\n\n_Rating_: ${emojiRating(
-                        rating?.rate
-                    )} by ${rating?.count || 0} shoppers.`,
+                    message: text,
                 });
 
                 // send buy buttons
@@ -248,7 +249,7 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                 ];
 
                 await Whatsapp.sendButtons({
-                    message: `${nameOfSender}, You selected the product above\nWhat do you want to do next?`,
+                    message: `Here is the product, what do you want to do next?`,
                     recipientNumber: recipientNumber,
                     message_id,
                     listOfButtons: listOfButtons,
@@ -371,7 +372,7 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                         bodyText: `\nWe have great products lined up for you based on your previous shopping history🛍️.\n\nSanta 🎅 also made you a coupon code: *_${Math.floor(
                             Math.random() * 1234578
                         )}_*.\n\nPlease select one of the products below.`,
-                        footerText: 'Powered by: Blanqx LLC',
+                        footerText: 'Powered by: BMI LLC',
                         listOfSections,
                     });
                 } else {
