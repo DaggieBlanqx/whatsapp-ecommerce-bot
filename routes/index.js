@@ -124,6 +124,7 @@ router.get('/meta_wa_callbackurl', (req, res) => {
 
 router.post('/meta_wa_callbackurl', async (req, res) => {
     console.log('POST: Someone is pinging me!');
+
     // return res.status(200).send('OK'); //BLANQX
     let Store = new EcommerceStore();
 
@@ -134,8 +135,12 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
             let recipientNumber = data.message.from; // extract the phone number from the webhook payload
             let typeOfMsg = data.msgType;
             let message_id = data.message.id;
-
             let nameOfSender = data.contacts.profile.name;
+
+            await Whatsapp.markMessageAsRead({
+                message_id,
+            });
+
             if (typeOfMsg === 'textMessage') {
                 let listOfButtons = [
                     {
@@ -276,86 +281,6 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                         message_id,
                         listOfButtons: listOfButtons,
                     });
-                } else if (button_id === 'see_products') {
-                    /*
-                    // respond with a list of products
-                    var categories = await Store.getAllCategories();
-                    if (categories.status !== 'success') {
-                        await Whatsapp.sendText({
-                            message: `Sorry, I could not get the categories.`,
-                            recipientNumber: recipientNumber,
-                            message_id,
-                        });
-                    }
-                    // limit to 3 categories
-                    let listOfCategories = categories.data.slice(0, 3);
-
-                    let _listOfSections = async () => {
-                        return Promise.all(
-                            listOfCategories.map(async (category) => {
-                                let product = await Store.getProductsInCategory(
-                                    category
-                                );
-                                if (product.status === 'success') {
-                                    return {
-                                        title: `Top 3 in #${category}`.substring(
-                                            0,
-                                            24
-                                        ),
-                                        rows: product.data.map((product) => {
-                                            let trackable_id = `${product.id
-                                                .toString()
-                                                .substring(
-                                                    0,
-                                                    256
-                                                )}_${category}_${recipientNumber}`;
-                                            let title = (() =>
-                                                `${product.title.substring(
-                                                    0,
-                                                    21
-                                                )}...`)();
-                                            let description = (() => {
-                                                let price = product.price;
-                                                let description =
-                                                    product.description;
-                                                let output =
-                                                    `$${price}\n${description}`.substring(
-                                                        0,
-                                                        69
-                                                    );
-                                                return `${output}...`;
-                                            })();
-                                            return {
-                                                id: trackable_id,
-                                                title,
-                                                description,
-                                            };
-                                        }),
-                                    };
-                                }
-                            })
-                        );
-                    };
-                    let listOfSections = await _listOfSections();
-                    listOfSections = listOfSections.map((section) => {
-                        return {
-                            title: section.title,
-                            rows: section.rows.slice(0, 3),
-                        };
-                    });
-                    console.log({
-                        len: listOfSections.length,
-                    });
-
-                    await Whatsapp.sendList({
-                        recipientNumber: recipientNumber,
-                        headerText: 'Black Friday Top 3 of 3',
-                        bodyText:
-                            'We have great products lined up for you based on your previous shopping history.\nPlease select one of the products below.',
-                        footerText: 'Powered by: Blanqx LLC',
-                        listOfSections,
-                    });
-                    */
                 } else if (button_id === 'track_order') {
                     // respond with a list of georaphical locations of orders
 
@@ -455,10 +380,6 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                     });
                 }
             }
-
-            await Whatsapp.markMessageAsRead({
-                message_id,
-            });
 
             return res.sendStatus(200);
         } else if (data && data.isNotificationMessage) {
