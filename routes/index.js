@@ -368,8 +368,9 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                     await Whatsapp.sendList({
                         recipientNumber: recipientNumber,
                         headerText: `🫰 #BlackFriday Offers: ${specificCategory}`,
-                        bodyText:
-                            `\nWe have great products lined up for you based on your previous shopping history🛍️.\n\nSanta 🎅 also made you a coupon code: *_${Math.floor(Math.random()*1234578)}_*.\n\nPlease select one of the products below.`,
+                        bodyText: `\nWe have great products lined up for you based on your previous shopping history🛍️.\n\nSanta 🎅 also made you a coupon code: *_${Math.floor(
+                            Math.random() * 1234578
+                        )}_*.\n\nPlease select one of the products below.`,
                         footerText: 'Powered by: Blanqx LLC',
                         listOfSections,
                     });
