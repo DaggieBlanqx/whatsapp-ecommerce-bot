@@ -55,6 +55,7 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                     name: nameOfSender,
                     phoneNumber: recipientNumber,
                     cart: [],
+                    invoice: '',
                 });
             }
 
@@ -80,8 +81,17 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                     return product;
                 });
             };
-            let clearCart = ({ recipientNumber }) =>
-                (DataStore.get(recipientNumber).cart = []);
+            let clearCart = ({ recipientNumber }) => {
+                DataStore.get(recipientNumber).cart = [];
+            };
+
+            let prepareInvoice = ({ recipientNumber, invoice_info }) => {
+                DataStore.get(recipientNumber).invoice = invoice_info;
+            };
+
+            let retrieveInvoice = ({ recipientNumber }) => {
+                return DataStore.get(recipientNumber).invoice;
+            };
 
             let getCartTotal = async ({ recipientNumber }) => {
                 let total = 0;
@@ -296,14 +306,22 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                 } else if (button_id === 'checkout') {
                     // respond with a list of products
                     let finalBill = await getCartTotal({ recipientNumber });
+                    let pdfInvoiceText = `\nTotal: $${finalBill.total}`;
+                    let text = `Your total bill is: $${finalBill.total}.\nYou have ${finalBill.numberOfItems} items in your cart.\nYour cart contains:`;
 
-                    let text = `Your total bill is: $${finalBill.total}\n`;
-                    text += `You have ${finalBill.numberOfItems} items in your cart.\n`;
-                    text += `Your cart contains:`;
-                    finalBill.products.forEach((item) => {
+                    finalBill.products.forEach((item, index) => {
                         text += `\n👉🏿 ${item.title} - $${item.price}`;
+                        pdfInvoiceText += `\n#${index + 1}: ${item.title} - $${
+                            item.price
+                        }`;
                     });
+
                     text += `\n\nPlease select one of the following options:`;
+
+                    prepareInvoice({
+                        recipientNumber,
+                        invoice_info: pdfInvoiceText,
+                    });
 
                     await Whatsapp.sendButtons({
                         message: text,
@@ -336,8 +354,8 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                                 id: 'see_categories',
                             },
                             {
-                                title: 'Print receipt',
-                                id: 'print_receipt',
+                                title: 'Print invoice',
+                                id: 'print_invoice',
                             },
                         ],
                     });
@@ -363,12 +381,18 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                             address: oneLocation.address,
                         });
                     }, 5000);
-                } else if (button_id === 'print_receipt') {
+                } else if (button_id === 'print_invoice') {
+                    let invoice_path = `./invoice_${recipientNumber}.pdf`;
+
+                    Store.generateInvoice({
+                        order_details: retrieveInvoice({ recipientNumber }),
+                        file_path: invoice_path,
+                    });
                     // respond with a list of products
                     await Whatsapp.sendDocument({
                         recipientNumber: '254773841221',
-                        file_name: 'Your receipt.',
-                        file_path: './output.pdf',
+                        file_name: `Invoice - #${recipientNumber}`,
+                        file_path: invoice_path,
                     });
                 } else {
                     await Whatsapp.sendText({
