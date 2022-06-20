@@ -64,7 +64,6 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                     let product = raw_product.data;
                     let item = new Map();
                     item.set(product_id, product);
-                    console.log({ item, product });
                     DataStore.get(recipientNumber).cart.push(item);
                 }
             };
@@ -76,13 +75,10 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                 }
             };
             let listOfItemsCart = ({ recipientNumber }) => {
-                let items = DataStore.get(recipientNumber).cart.map((item) => {
+                return DataStore.get(recipientNumber).cart.map((item) => {
                     let product = item.get(item.keys().next().value);
                     return product;
                 });
-
-                console.log({ items });
-                return items;
             };
             let clearCart = ({ recipientNumber }) =>
                 (DataStore.get(recipientNumber).cart = []);
@@ -101,21 +97,20 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
             });
 
             if (typeOfMsg === 'textMessage') {
-                let listOfButtons = [
-                    {
-                        title: 'View some products',
-                        id: 'see_categories',
-                    },
-                    {
-                        title: 'Speak to a human',
-                        id: 'speak_to_human',
-                    },
-                ];
                 await Whatsapp.sendButtons({
                     message: `Hey ${nameOfSender}, \nYou are speaking to a chatbot.\nWhat do you want to do next?`,
                     recipientNumber: recipientNumber,
                     message_id,
-                    listOfButtons,
+                    listOfButtons: [
+                        {
+                            title: 'View some products',
+                            id: 'see_categories',
+                        },
+                        {
+                            title: 'Speak to a human',
+                            id: 'speak_to_human',
+                        },
+                    ],
                 });
 
                 // Respond by sending buttons to the user
@@ -156,33 +151,24 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                     message: text,
                 });
 
-                // send buy buttons
-
-                let listOfButtons = [
-                    {
-                        title: 'Add to cart🛒',
-                        id: `add_to_cart_${product_id}`,
-                    },
-                    {
-                        title: 'Speak to a human',
-                        id: 'speak_to_human',
-                    },
-                    {
-                        title: 'See more products',
-                        id: 'see_categories',
-                    },
-                ];
-
                 await Whatsapp.sendButtons({
                     message: `Here is the product, what do you want to do next?`,
                     recipientNumber: recipientNumber,
                     message_id,
-                    listOfButtons: listOfButtons,
-                });
-
-                let currentUser = DataStore.get(recipientNumber);
-                console.log({
-                    currentUser,
+                    listOfButtons: [
+                        {
+                            title: 'Add to cart🛒',
+                            id: `add_to_cart_${product_id}`,
+                        },
+                        {
+                            title: 'Speak to a human',
+                            id: 'speak_to_human',
+                        },
+                        {
+                            title: 'See more products',
+                            id: 'see_categories',
+                        },
+                    ],
                 });
             } else if (typeOfMsg === 'replyButtonMessage') {
                 let selectedButton = data.message.button_reply;
@@ -292,22 +278,20 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                         recipientNumber,
                     }).length;
 
-                    let listOfButtons = [
-                        {
-                            title: 'Checkout 🛍️',
-                            id: `checkout`,
-                        },
-                        {
-                            title: 'See more products',
-                            id: 'see_categories',
-                        },
-                    ];
-
                     await Whatsapp.sendButtons({
                         message: `Your cart has been updated.\nNumber of items in cart: ${numberOfItemsInCart}.\n\nWhat do you want to do next?`,
                         recipientNumber: recipientNumber,
                         message_id,
-                        listOfButtons: listOfButtons,
+                        listOfButtons: [
+                            {
+                                title: 'Checkout 🛍️',
+                                id: `checkout`,
+                            },
+                            {
+                                title: 'See more products',
+                                id: 'see_categories',
+                            },
+                        ],
                     });
                 } else if (button_id === 'checkout') {
                     // respond with a list of products
@@ -315,30 +299,26 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
 
                     let text = `Your total bill is: $${finalBill.total}\n`;
                     text += `You have ${finalBill.numberOfItems} items in your cart.\n`;
-                    text += `Your cart is:`;
-                    console.log({
-                        finalBill,
-                    });
+                    text += `Your cart contains:`;
                     finalBill.products.forEach((item) => {
                         text += `\n👉🏿 ${item.title} - $${item.price}`;
                     });
                     text += `\n\nPlease select one of the following options:`;
-                    let listOfButtons = [
-                        {
-                            title: 'Pay with cash',
-                            id: 'pay_with_cash',
-                        },
-                        {
-                            title: 'Pay later',
-                            id: 'pay_later',
-                        },
-                    ];
 
                     await Whatsapp.sendButtons({
                         message: text,
                         recipientNumber: recipientNumber,
                         message_id,
-                        listOfButtons: listOfButtons,
+                        listOfButtons: [
+                            {
+                                title: 'Pay with cash',
+                                id: 'pay_with_cash',
+                            },
+                            {
+                                title: 'Pay later',
+                                id: 'pay_later',
+                            },
+                        ],
                     });
                 } else if (
                     button_id === 'pay_with_cash' ||
