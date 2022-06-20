@@ -234,7 +234,7 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
 
                 let listOfButtons = [
                     {
-                        title: 'Buy Now',
+                        title: 'Buy Now 🛒',
                         id: `buy_product_${product_id}`,
                     },
                     {
@@ -369,7 +369,7 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                         recipientNumber: recipientNumber,
                         headerText: `🫰 #BlackFriday Offers: ${specificCategory}`,
                         bodyText:
-                            'We have great products lined up for you based on your previous shopping history.\nPlease select one of the products below.',
+                            `\nWe have great products lined up for you based on your previous shopping history🛍️.\n\nSanta 🎅 also made you a coupon code: *_${Math.floor(Math.random()*1234578)}_*.\n\nPlease select one of the products below.`,
                         footerText: 'Powered by: Blanqx LLC',
                         listOfSections,
                     });
