@@ -395,7 +395,7 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
 
                     await Whatsapp.sendButtons({
                         recipientNumber: recipientNumber,
-                        message: `Thank you ${nameOfSender}.\n\nYour order will be delivered soon.`,
+                        message: `Thank you ${nameOfSender}.\n\nYour order has been received. It will be processed shortly. We will update you on the progress of your order via Whatsapp inbox.`,
                         message_id,
                         listOfButtons: [
                             {
@@ -403,15 +403,31 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                                 id: 'see_categories',
                             },
                             {
-                                title: 'Track your order',
-                                id: 'track_order',
-                            },
-                            {
                                 title: 'Print receipt',
                                 id: 'print_receipt',
                             },
                         ],
                     });
+
+                    setTimeout(async () => {
+                        let oneLocation =
+                            RandomGeoLocations[
+                                Math.floor(
+                                    Math.random() * RandomGeoLocations.length
+                                )
+                            ];
+                        await Whatsapp.sendText({
+                            recipientNumber: recipientNumber,
+                            message: `Your order has been fulfilled. Come and pick it up here:`,
+                        });
+                        await Whatsapp.sendLocation({
+                            recipientNumber: recipientNumber,
+                            latitude: oneLocation.latitude,
+                            longitude: oneLocation.longitude,
+                            name: 'Mom-N-Pop Shop',
+                            address: oneLocation.address,
+                        });
+                    }, 5000);
                 } else if (button_id === 'print_receipt') {
                     // respond with a list of products
                     await Whatsapp.sendDocument({
