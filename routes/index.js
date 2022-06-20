@@ -404,17 +404,13 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                     });
                 }
             }
-
-            return res.sendStatus(200);
         }
+
         return res.sendStatus(200);
     } catch (error) {
+        let msg = error?.error_data?.details;
         //     console.error({ error });
-        if (
-            error?.error_data?.details?.includes(
-                'older than the last-seen message in this conversation'
-            )
-        ) {
+        if (msg && msg.includes('last-seen message in this conversation')) {
             return res.sendStatus(200);
         }
         return res.sendStatus(404);
