@@ -417,7 +417,7 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
             return res.sendStatus(500);
         }
     } catch (error) {
-        console.error({ error });
+        //     console.error({ error });
         if (
             error?.error_data?.details?.includes(
                 'older than the last-seen message in this conversation'
@@ -426,21 +426,6 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
             return res.sendStatus(200);
         }
         return res.sendStatus(404);
-    }
-});
-
-router.get('/qr', async (req, res) => {
-    // createQRCodeMessage
-    let msg = req.query.msg;
-
-    if (msg) {
-        let results = await Whatsapp.createQRCodeMessage({
-            message: msg,
-        });
-
-        return res.status(200).send(results);
-    } else {
-        return res.status(400).send('No message provided');
     }
 });
 
