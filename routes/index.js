@@ -10,6 +10,7 @@ const Whatsapp = new WhatsappCloudAPI({
 });
 
 const RandomGeoLocations = require('../utils/geolocation_MOCK_DATA.json');
+const e = require('express');
 
 class EcommerceStore {
     constructor() {
@@ -139,7 +140,7 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                 let listOfButtons = [
                     {
                         title: 'List some products',
-                        id: 'see_products',
+                        id: 'see_categories',
                     },
                     {
                         title: 'Track my order',
@@ -236,8 +237,8 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                         id: 'speak_to_human',
                     },
                     {
-                        title: 'See others',
-                        id: 'see_products',
+                        title: 'See more products',
+                        id: 'see_categories',
                     },
                 ];
 
@@ -249,131 +250,209 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                 });
             } else if (typeOfMsg === 'replyButtonMessage') {
                 let selectedButton = data.message.button_reply;
+                let button_id = selectedButton?.id;
+                if (button_id === 'see_categories') {
+                    var categories = await Store.getAllCategories();
+                    if (categories.status !== 'success') {
+                        await Whatsapp.sendText({
+                            message: `Sorry, I could not get the categories.`,
+                            recipientNumber: recipientNumber,
+                            message_id,
+                        });
+                    }
 
-                switch (selectedButton.id) {
-                    case 'see_products':
-                        // respond with a list of products
-                        let categories = await Store.getAllCategories();
-                        if (categories.status !== 'success') {
-                            await Whatsapp.sendText({
-                                message: `Sorry, I could not get the categories.`,
-                                recipientNumber: recipientNumber,
-                                message_id,
-                            });
-                        }
-                        // limit to 3 categories
-                        let listOfCategories = categories.data.slice(0, 3);
-
-                        let _listOfSections = async () => {
-                            return Promise.all(
-                                listOfCategories.map(async (category) => {
-                                    let product =
-                                        await Store.getProductsInCategory(
-                                            category
-                                        );
-                                    if (product.status === 'success') {
-                                        return {
-                                            title: `Top 3 in #${category}`.substring(
-                                                0,
-                                                24
-                                            ),
-                                            rows: product.data.map(
-                                                (product) => {
-                                                    let trackable_id = `${product.id
-                                                        .toString()
-                                                        .substring(
-                                                            0,
-                                                            256
-                                                        )}_${category}_${recipientNumber}`;
-                                                    let title = (() =>
-                                                        `${product.title.substring(
-                                                            0,
-                                                            21
-                                                        )}...`)();
-                                                    let description = (() => {
-                                                        let price =
-                                                            product.price;
-                                                        let description =
-                                                            product.description;
-                                                        let output =
-                                                            `$${price}\n${description}`.substring(
-                                                                0,
-                                                                69
-                                                            );
-                                                        return `${output}...`;
-                                                    })();
-                                                    return {
-                                                        id: trackable_id,
-                                                        title,
-                                                        description,
-                                                    };
-                                                }
-                                            ),
-                                        };
-                                    }
-                                })
-                            );
-                        };
-                        let listOfSections = await _listOfSections();
-                        listOfSections = listOfSections.map((section) => {
+                    let listOfButtons = categories.data
+                        .slice(0, 3)
+                        .map((category) => {
                             return {
-                                title: section.title,
-                                rows: section.rows.slice(0, 3),
+                                title: category,
+                                id: `category_${category}`,
                             };
                         });
-                        console.log({
-                            len: listOfSections.length,
-                        });
 
-                        await Whatsapp.sendList({
-                            recipientNumber: recipientNumber,
-                            headerText: 'Black Friday Top 3 of 3',
-                            bodyText:
-                                'We have great products lined up for you based on your previous shopping history.\nPlease select one of the products below.',
-                            footerText: 'Powered by: Blanqx LLC',
-                            listOfSections,
-                        });
-                        break;
-                    case 'track_order':
-                        // respond with a list of georaphical locations of orders
-
-                        let oneLocation =
-                            RandomGeoLocations[
-                                Math.floor(
-                                    Math.random() * RandomGeoLocations.length
-                                )
-                            ];
+                    await Whatsapp.sendButtons({
+                        message: `${nameOfSender}, We have several categories.\nChoose one of them.`,
+                        recipientNumber: recipientNumber,
+                        message_id,
+                        listOfButtons: listOfButtons,
+                    });
+                } else if (button_id === 'see_products') {
+                    /*
+                    // respond with a list of products
+                    var categories = await Store.getAllCategories();
+                    if (categories.status !== 'success') {
                         await Whatsapp.sendText({
+                            message: `Sorry, I could not get the categories.`,
                             recipientNumber: recipientNumber,
-                            message: `Your order is on the way. Here is where we are at now:`,
+                            message_id,
                         });
-                        await Whatsapp.sendLocation({
-                            recipientNumber: recipientNumber,
-                            latitude: oneLocation.latitude,
-                            longitude: oneLocation.longitude,
-                            name: 'Mom-N-Pop Shop',
-                            address: oneLocation.address,
-                        });
-                        break;
-                    case 'speak_to_human':
-                        // respond with a list of human resources
-                        await Whatsapp.sendText({
-                            recipientNumber: recipientNumber,
-                            message: `Not to brag, but unlike humans, chatbots are super fast⚡, we never sleep, never rest, never take lunch🍽 and can multitask.\n\nAnway don't fret, a hoooooman will 📞contact you soon.\n\nWanna blast☎ his/her phone😈?\nHere are the contact details:`,
-                        });
+                    }
+                    // limit to 3 categories
+                    let listOfCategories = categories.data.slice(0, 3);
 
-                        await Whatsapp.sendContact({
-                            recipientNumber: recipientNumber,
-                        });
-                        break;
-                    default:
-                        await Whatsapp.sendText({
-                            recipientNumber: recipientNumber,
-                            message:
-                                'Sorry, I did not understand your request.',
-                        });
+                    let _listOfSections = async () => {
+                        return Promise.all(
+                            listOfCategories.map(async (category) => {
+                                let product = await Store.getProductsInCategory(
+                                    category
+                                );
+                                if (product.status === 'success') {
+                                    return {
+                                        title: `Top 3 in #${category}`.substring(
+                                            0,
+                                            24
+                                        ),
+                                        rows: product.data.map((product) => {
+                                            let trackable_id = `${product.id
+                                                .toString()
+                                                .substring(
+                                                    0,
+                                                    256
+                                                )}_${category}_${recipientNumber}`;
+                                            let title = (() =>
+                                                `${product.title.substring(
+                                                    0,
+                                                    21
+                                                )}...`)();
+                                            let description = (() => {
+                                                let price = product.price;
+                                                let description =
+                                                    product.description;
+                                                let output =
+                                                    `$${price}\n${description}`.substring(
+                                                        0,
+                                                        69
+                                                    );
+                                                return `${output}...`;
+                                            })();
+                                            return {
+                                                id: trackable_id,
+                                                title,
+                                                description,
+                                            };
+                                        }),
+                                    };
+                                }
+                            })
+                        );
+                    };
+                    let listOfSections = await _listOfSections();
+                    listOfSections = listOfSections.map((section) => {
+                        return {
+                            title: section.title,
+                            rows: section.rows.slice(0, 3),
+                        };
+                    });
+                    console.log({
+                        len: listOfSections.length,
+                    });
 
-                        break;
+                    await Whatsapp.sendList({
+                        recipientNumber: recipientNumber,
+                        headerText: 'Black Friday Top 3 of 3',
+                        bodyText:
+                            'We have great products lined up for you based on your previous shopping history.\nPlease select one of the products below.',
+                        footerText: 'Powered by: Blanqx LLC',
+                        listOfSections,
+                    });
+                    */
+                } else if (button_id === 'track_order') {
+                    // respond with a list of georaphical locations of orders
+
+                    let oneLocation =
+                        RandomGeoLocations[
+                            Math.floor(
+                                Math.random() * RandomGeoLocations.length
+                            )
+                        ];
+                    await Whatsapp.sendText({
+                        recipientNumber: recipientNumber,
+                        message: `Your order is on the way. Here is where we are at now:`,
+                    });
+                    await Whatsapp.sendLocation({
+                        recipientNumber: recipientNumber,
+                        latitude: oneLocation.latitude,
+                        longitude: oneLocation.longitude,
+                        name: 'Mom-N-Pop Shop',
+                        address: oneLocation.address,
+                    });
+                } else if (button_id === 'speak_to_human') {
+                    // respond with a list of human resources
+                    await Whatsapp.sendText({
+                        recipientNumber: recipientNumber,
+                        message: `Not to brag, but unlike humans, chatbots are super fast⚡, we never sleep, never rest, never take lunch🍽 and can multitask.\n\nAnway don't fret, a hoooooman will 📞contact you soon.\n\nWanna blast☎ his/her phone😈?\nHere are the contact details:`,
+                    });
+
+                    await Whatsapp.sendContact({
+                        recipientNumber: recipientNumber,
+                    });
+                } else if (button_id.startsWith('category_')) {
+                    let specificCategory = button_id.split('category_')[1];
+                    // respond with a list of products
+                    var listOfProducts = await Store.getProductsInCategory(
+                        specificCategory
+                    );
+
+                    if (listOfProducts.status !== 'success') {
+                        await Whatsapp.sendText({
+                            message: `Sorry, I could not get the products.`,
+                            recipientNumber: recipientNumber,
+                            message_id,
+                        });
+                    }
+
+                    let listOfSections = [
+                        {
+                            title: `🏆 Top 3: ${specificCategory}`.substring(
+                                0,
+                                24
+                            ),
+                            rows: listOfProducts.data
+                                .map((product) => {
+                                    let trackable_id = `${product.id
+                                        .toString()
+                                        .substring(
+                                            0,
+                                            256
+                                        )}_${specificCategory}_${recipientNumber}`;
+                                    let title = (() =>
+                                        `${product.title.substring(
+                                            0,
+                                            21
+                                        )}...`)();
+                                    let description = (() => {
+                                        let price = product.price;
+                                        let description = product.description;
+                                        let output =
+                                            `$${price}\n${description}`.substring(
+                                                0,
+                                                69
+                                            );
+                                        return `${output}...`;
+                                    })();
+
+                                    return {
+                                        id: trackable_id,
+                                        title,
+                                        description,
+                                    };
+                                })
+                                .slice(0, 10),
+                        },
+                    ];
+                    await Whatsapp.sendList({
+                        recipientNumber: recipientNumber,
+                        headerText: `🫰 #BlackFriday Offers: ${specificCategory}`,
+                        bodyText:
+                            'We have great products lined up for you based on your previous shopping history.\nPlease select one of the products below.',
+                        footerText: 'Powered by: Blanqx LLC',
+                        listOfSections,
+                    });
+                } else {
+                    await Whatsapp.sendText({
+                        recipientNumber: recipientNumber,
+                        message: 'Sorry, I did not understand your request.',
+                    });
                 }
             }
 
