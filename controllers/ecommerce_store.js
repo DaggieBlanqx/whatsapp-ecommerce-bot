@@ -98,10 +98,19 @@ module.exports = class EcommerceStore {
         });
     }
 
-    async generateInvoice(order) {
-        return new Promise((resolve, reject) => {
-            // Create a document
-            const doc = new PDFDocument();
-        });
+    async generateInvoice({ order_details, file_path }) {
+        // return new Promise((resolve, reject) => {
+        // Create a document
+        const doc = new PDFDocument();
+        doc.pipe(fs.createWriteStream(file_path));
+        doc.fontSize(25).text(order_details, 100, 100);
+        doc.end();
+        return {
+            status: 'success',
+            data: {
+                file_path,
+            },
+        };
+        // });
     }
 };

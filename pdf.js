@@ -12,14 +12,14 @@ doc.pipe(fs.createWriteStream('output.pdf'));
 doc
     //   .font('fonts/PalatinoBold.ttf')
     .fontSize(25)
-    .text('Some text with an embedded font!', 100, 100);
-
+    .text('Hello \ntex\nt with \nan embedded font!', 100, 100);
+/*
 // Add an image, constrain it to a given size, and center it vertically and horizontally
-doc.image('path/to/image.png', {
-    fit: [250, 300],
-    align: 'center',
-    valign: 'center',
-});
+// doc.image('path/to/image.png', {
+//     fit: [250, 300],
+//     align: 'center',
+//     valign: 'center',
+// });
 
 // Add another page
 doc.addPage().fontSize(25).text('Here is some vector graphics...', 100, 100);
@@ -40,6 +40,6 @@ doc.addPage()
     .text('Here is a link!', 100, 100)
     .underline(100, 100, 160, 27, { color: '#0000FF' })
     .link(100, 100, 160, 27, 'http://google.com/');
-
+*/
 // Finalize PDF file
 doc.end();
