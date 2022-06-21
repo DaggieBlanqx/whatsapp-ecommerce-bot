@@ -3,30 +3,24 @@ const request = require('request');
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 
-module.exports = class FakeEcommerceStore {
+module.exports = class EcommerceStore {
     constructor() {}
     async _fetchAssistant(endpoint) {
         return new Promise((resolve, reject) => {
             request.get(
                 `https://fakestoreapi.com${endpoint ? endpoint : '/'}`,
-                (err, res, body) => {
+                (error, res, body) => {
                     try {
-                        if (err) {
-                            reject({
-                                status: 'failed',
-                                err,
-                            });
+                        if (error) {
+                            reject(error);
                         }
 
                         resolve({
                             status: 'success',
                             data: JSON.parse(body),
                         });
-                    } catch (err) {
-                        reject({
-                            status: 'failed',
-                            error: err,
-                        });
+                    } catch (error) {
+                        reject(error);
                     }
                 }
             );
