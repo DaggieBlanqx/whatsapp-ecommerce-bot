@@ -196,37 +196,19 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                             addresses: [
                                 {
                                     city: 'Nairobi',
-                                    state: 'Nairobi',
-                                    zip: '00100',
                                     country: 'Kenya',
-                                    country_code: 'ke',
-                                    type: 'WORK',
-                                },
-                            ],
-                            birthday: '2022-02-07',
-                            emails: [
-                                {
-                                    email: 'test@fb.com',
-                                    type: 'WORK',
                                 },
                             ],
                             name: {
-                                formatted_name: 'Daggie Blanqx',
                                 first_name: 'Daggie',
                                 last_name: 'Blanqx',
-                                middle_name: 'M.',
-                                suffix: 'Sr',
-                                prefix: 'Sw Engr',
                             },
                             org: {
                                 company: 'Mom-N-Pop Shop',
-                                department: 'Test Department',
-                                title: 'Test Manager',
                             },
                             phones: [
                                 {
                                     phone: '+1 (650) 555-1234',
-                                    type: 'WORK',
                                 },
                             ],
                         },
