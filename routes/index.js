@@ -47,6 +47,7 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
             let message_id = data.message.id;
             let nameOfSender = data.contacts.profile.name;
 
+            // Start of cart logic
             if (!DataStore.get(recipientNumber)) {
                 DataStore.set(recipientNumber, {
                     name: nameOfSender,
@@ -73,7 +74,6 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
             let clearCart = ({ recipientNumber }) => {
                 DataStore.get(recipientNumber).cart = [];
             };
-
             let getCartTotal = async ({ recipientNumber }) => {
                 let total = 0;
                 let products = listOfItemsCart({ recipientNumber });
@@ -83,7 +83,9 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                 );
                 return { total, products, numberOfItems: products.length };
             };
+            // End of cart logic
 
+            // Mark every message as read: for older messages, an error will be thrown but we can ignore it via an if-else statement that is in the catch block
             await Whatsapp.markMessageAsRead({
                 message_id,
             });
