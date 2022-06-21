@@ -7,28 +7,29 @@ module.exports = class FakeEcommerceStore {
     constructor() {}
     async _fetchAssistant(endpoint) {
         return new Promise((resolve, reject) => {
-            let fullUrl = `https://fakestoreapi.com${endpoint}`;
-            request.get(fullUrl, (err, res, body) => {
-                try {
-                    if (err) {
+            request.get(
+                `https://fakestoreapi.com${endpoint ? endpoint : '/'}`,
+                (err, res, body) => {
+                    try {
+                        if (err) {
+                            reject({
+                                status: 'failed',
+                                err,
+                            });
+                        }
+
+                        resolve({
+                            status: 'success',
+                            data: JSON.parse(body),
+                        });
+                    } catch (err) {
                         reject({
                             status: 'failed',
-                            err,
+                            error: err,
                         });
                     }
-
-                    let data = JSON.parse(body);
-                    resolve({
-                        status: 'success',
-                        data,
-                    });
-                } catch (err) {
-                    reject({
-                        status: 'failed',
-                        error: err,
-                    });
                 }
-            });
+            );
         });
     }
 
