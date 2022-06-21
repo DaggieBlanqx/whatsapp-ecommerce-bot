@@ -77,9 +77,10 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
             let getCartTotal = async ({ recipientNumber }) => {
                 let total = 0;
                 let products = listOfItemsCart({ recipientNumber });
-                for (let product of products) {
-                    total += product.price;
-                }
+                total = products.reduce(
+                    (acc, product) => acc + product.price,
+                    total
+                );
                 return { total, products, numberOfItems: products.length };
             };
 
