@@ -9,7 +9,7 @@ const Whatsapp = new WhatsappCloudAPI({
     WABA_ID: process.env.Meta_WA_wabaId,
 });
 
-const EcommerceStore = require('./../controllers/ecommerce_store.js');
+const EcommerceStore = require('./../utils/ecommerce_store.js');
 let DataStore = new Map();
 
 router.get('/meta_wa_callbackurl', (req, res) => {
