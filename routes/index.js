@@ -322,29 +322,28 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                 if (button_id === 'checkout') {
                     // respond with a list of products
                     let finalBill = await getCartTotal({ recipientNumber });
-                    let pdfInvoiceText = `\nDate: ${new Date().toLocaleDateString()}`;
 
-                    let text = `\nDate: ${new Date().toLocaleDateString()}`;
-                    text += `\nYou have ${finalBill.products.length} items in your cart.\nYour cart contains:`;
+                    let pdfInvoice = ``;
+                    let msgInvoice = `\nYou have ${finalBill.products.length} items in your cart.\nYour cart contains:`;
 
                     finalBill.products.forEach((item, index) => {
-                        text += `\n👉🏿 ${item.title} - $${item.price}`;
-                        pdfInvoiceText += `\n#${index + 1}: ${item.title} - $${
+                        msgInvoice += `\n👉🏿 ${item.title} - $${item.price}`;
+                        pdfInvoice += `\n#${index + 1}: ${item.title} - $${
                             item.price
                         }`;
                     });
 
-                    text += `\n\nTotal: $${finalBill.total}`;
-                    pdfInvoiceText += `\n\nTotal: $${finalBill.total}`;
-                    text += `\n\nPlease select one of the following options:`;
+                    msgInvoice += `\n\nTotal: $${finalBill.total}`;
+                    msgInvoice += `\n\nPlease select one of the following options:`;
 
+                    pdfInvoice += `\n\nTotal: $${finalBill.total}`;
                     Store.generateInvoice({
-                        order_details: pdfInvoiceText,
+                        order_details: pdfInvoice,
                         file_path: `./invoice_${nameOfSender}.pdf`,
                     });
 
                     await Whatsapp.sendButtons({
-                        message: text,
+                        message: msgInvoice,
                         recipientNumber: recipientNumber,
                         message_id,
                         listOfButtons: [
