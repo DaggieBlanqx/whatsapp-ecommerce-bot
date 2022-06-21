@@ -117,8 +117,7 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
 
                 if (selectionId.startsWith('prod_')) {
                     let trackable_id = selectedRadioBtn?.id.split('_');
-                    let [prod_, item_id, item_category, userAccount] =
-                        trackable_id;
+                    let [prod_, item_id] = trackable_id;
 
                     // get product from store
                     let product = await Store.getProductById(item_id);
@@ -269,10 +268,7 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                                 .map((product) => {
                                     let trackable_id = `prod_${product.id
                                         .toString()
-                                        .substring(
-                                            0,
-                                            256
-                                        )}_${specificCategory}_${recipientNumber}`;
+                                        .substring(0, 256)}`;
                                     let title = (() =>
                                         `${product.title.substring(
                                             0,
