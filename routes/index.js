@@ -122,12 +122,10 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                     },
                 ],
             };
-            let d = await Whatsapp.sendContact({
+            await Whatsapp.sendContact({
                 recipientNumber: recipientNumber,
                 contact_profile: sample_contact,
             });
-
-            console.log({ d });
 
             return res.status(200).send('OK');
 
@@ -484,7 +482,7 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
         return res.sendStatus(200);
     } catch (error) {
         let msg = error?.error_data?.details;
-        //     console.error({ error });
+        console.error({ error });
         if (msg && msg.includes('last-seen message in this conversation')) {
             return res.sendStatus(200);
         }
