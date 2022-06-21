@@ -3,11 +3,11 @@ const request = require('request');
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 
-module.exports = class EcommerceStore {
+module.exports = class FakeEcommerceStore {
     constructor() {}
-    async _fetchAssistant(suffixUrl) {
+    async _fetchAssistant(endpoint) {
         return new Promise((resolve, reject) => {
-            let fullUrl = `https://fakestoreapi.com${suffixUrl}`;
+            let fullUrl = `https://fakestoreapi.com${endpoint}`;
             request.get(fullUrl, (err, res, body) => {
                 try {
                     if (err) {
