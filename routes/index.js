@@ -110,71 +110,98 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                 // which product is the user interested in?
                 // Respond with an image of the product and a button to buy it directly from the chatbot
                 let selectedRadioBtn = data.message.list_reply;
-                let item = selectedRadioBtn?.id.split('_');
-                let [item_id, item_category, userAccount] = item;
 
-                // get product from store
-                let product = await Store.getProductById(item_id);
-                if (product.status !== 'success') {
-                    await Whatsapp.sendText({
-                        message: `Sorry, I could not get the product.`,
+                let selectionId = selectedRadioBtn.id;
+
+                if (selectionId.startsWith('prod_')) {
+                    let trackable_id = selectedRadioBtn?.id.split('_');
+                    let [prod_, item_id, item_category, userAccount] =
+                        trackable_id;
+
+                    console.log({
+                        prod_,
+                        item_id,
+                        item_category,
+                        userAccount,
+                    });
+
+                    // get product from store
+                    let product = await Store.getProductById(item_id);
+                    if (product.status !== 'success') {
+                        await Whatsapp.sendText({
+                            message: `Sorry, I could not get the product.`,
+                            recipientNumber: recipientNumber,
+                            message_id,
+                        });
+                    }
+
+                    let product_id = product.data.id;
+                    let price = product.data.price;
+                    let title = product.data.title?.trim();
+                    let description = product.data.description?.trim();
+                    let category = product.data.category?.trim();
+                    let imageUrl = product.data.image;
+                    let rating = product.data.rating;
+                    let emojiRating = (rating) => {
+                        // generate as many emojis as are rating
+                        rating = Math.floor(rating || 0);
+                        let emojiIcon = '⭐';
+                        let output = [];
+                        for (var i = 0; i < rating; i++) output.push(emojiIcon);
+                        return output.join('');
+                    };
+                    let text = `_Title_: *${title}*\n\n\n`;
+                    text += `_Description_: ${description}\n\n\n`;
+                    text += `_Price_: $${price}\n`;
+                    text += `_Category_: ${category}\n`;
+                    text += `_Rated_: ${emojiRating(rating?.rate)}\n\n`;
+                    text += `${
+                        rating?.count || 0
+                    } shoppers liked this product.`;
+
+                    await Whatsapp.sendImage({
+                        recipientNumber,
+                        url: imageUrl,
+                        message: text,
+                    });
+
+                    await Whatsapp.sendButtons({
+                        message: `Here is the product, what do you want to do next?`,
                         recipientNumber: recipientNumber,
                         message_id,
+                        listOfButtons: [
+                            {
+                                title: 'Add to cart🛒',
+                                id: `add_to_cart_${product_id}`,
+                            },
+                            {
+                                title: 'Speak to a human',
+                                id: 'speak_to_human',
+                            },
+                            {
+                                title: 'See more products',
+                                id: 'see_categories',
+                            },
+                        ],
                     });
                 }
-
-                let product_id = product.data.id;
-                let price = product.data.price;
-                let title = product.data.title?.trim();
-                let description = product.data.description?.trim();
-                let category = product.data.category?.trim();
-                let imageUrl = product.data.image;
-                let rating = product.data.rating;
-                let emojiRating = (rating) => {
-                    // generate as many emojis as are rating
-                    rating = Math.floor(rating || 0);
-                    let emojiIcon = '⭐';
-                    let output = [];
-                    for (var i = 0; i < rating; i++) output.push(emojiIcon);
-                    return output.join('');
-                };
-                let text = `_Title_: *${title}*\n\n\n`;
-                text += `_Description_: ${description}\n\n\n`;
-                text += `_Price_: $${price}\n`;
-                text += `_Category_: ${category}\n`;
-                text += `_Rated_: ${emojiRating(rating?.rate)}\n\n`;
-                text += `${rating?.count || 0} shoppers liked this product.`;
-
-                await Whatsapp.sendImage({
-                    recipientNumber,
-                    url: imageUrl,
-                    message: text,
-                });
-
-                await Whatsapp.sendButtons({
-                    message: `Here is the product, what do you want to do next?`,
-                    recipientNumber: recipientNumber,
-                    message_id,
-                    listOfButtons: [
-                        {
-                            title: 'Add to cart🛒',
-                            id: `add_to_cart_${product_id}`,
-                        },
-                        {
-                            title: 'Speak to a human',
-                            id: 'speak_to_human',
-                        },
-                        {
-                            title: 'See more products',
-                            id: 'see_categories',
-                        },
-                    ],
-                });
             }
 
             if (typeOfMsg === 'replyButtonMessage') {
                 let selectedButton = data.message.button_reply;
                 let button_id = selectedButton?.id;
+
+                if (button_id === 'speak_to_human') {
+                    // respond with a list of human resources
+                    await Whatsapp.sendText({
+                        recipientNumber: recipientNumber,
+                        message: `Not to brag, but unlike humans, chatbots are super fast⚡, we never sleep, never rest, never take lunch🍽 and can multitask.\n\nAnway don't fret, a hoooooman will 📞contact you soon.\n\nWanna blast☎ his/her phone😈?\nHere are the contact details:`,
+                    });
+
+                    await Whatsapp.sendContact({
+                        recipientNumber: recipientNumber,
+                    });
+                }
                 if (button_id === 'see_categories') {
                     let categories = await Store.getAllCategories();
                     if (categories.status !== 'success') {
@@ -201,17 +228,6 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                         listOfButtons: listOfButtons,
                     });
                 }
-                if (button_id === 'speak_to_human') {
-                    // respond with a list of human resources
-                    await Whatsapp.sendText({
-                        recipientNumber: recipientNumber,
-                        message: `Not to brag, but unlike humans, chatbots are super fast⚡, we never sleep, never rest, never take lunch🍽 and can multitask.\n\nAnway don't fret, a hoooooman will 📞contact you soon.\n\nWanna blast☎ his/her phone😈?\nHere are the contact details:`,
-                    });
-
-                    await Whatsapp.sendContact({
-                        recipientNumber: recipientNumber,
-                    });
-                }
 
                 if (button_id.startsWith('category_')) {
                     let specificCategory = button_id.split('category_')[1];
@@ -236,7 +252,7 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                             ),
                             rows: listOfProducts.data
                                 .map((product) => {
-                                    let trackable_id = `${product.id
+                                    let trackable_id = `prod_${product.id
                                         .toString()
                                         .substring(
                                             0,
@@ -321,7 +337,7 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
 
                     Store.generateInvoice({
                         order_details: pdfInvoiceText,
-                        file_path: `./invoice_${recipientNumber}.pdf`,
+                        file_path: `./invoice_${nameOfSender}.pdf`,
                     });
 
                     await Whatsapp.sendButtons({
@@ -383,8 +399,8 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                     // respond with a list of products
                     await Whatsapp.sendDocument({
                         recipientNumber: '254773841221',
-                        file_name: `Invoice - #${recipientNumber}`,
-                        file_path: `./invoice_${recipientNumber}.pdf`,
+                        file_name: `Invoice - #${nameOfSender}`,
+                        file_path: `./invoice_${nameOfSender}.pdf`,
                     });
                 }
             }
