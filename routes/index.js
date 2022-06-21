@@ -56,11 +56,10 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
             }
 
             let addToCart = async ({ product_id, recipientNumber }) => {
-                let raw_product = await Store.getProductById(product_id);
-                if (raw_product.status === 'success') {
-                    let product = raw_product.data;
+                let product = await Store.getProductById(product_id);
+                if (product.status === 'success') {
                     let item = new Map();
-                    item.set(product_id, product);
+                    item.set(product_id, product.data);
                     CustomerSession.get(recipientNumber).cart.push(item);
                 }
             };
@@ -80,7 +79,7 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                     (acc, product) => acc + product.price,
                     total
                 );
-                return { total, products, numberOfItems: products.length };
+                return { total, products };
             };
             // End of cart logic
             if (typeOfMsg === 'textMessage') {
@@ -326,7 +325,7 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                     let pdfInvoiceText = `\nDate: ${new Date().toLocaleDateString()}`;
 
                     let text = `\nDate: ${new Date().toLocaleDateString()}`;
-                    text += `\nYou have ${finalBill.numberOfItems} items in your cart.\nYour cart contains:`;
+                    text += `\nYou have ${finalBill.products.length} items in your cart.\nYour cart contains:`;
 
                     finalBill.products.forEach((item, index) => {
                         text += `\n👉🏿 ${item.title} - $${item.price}`;
