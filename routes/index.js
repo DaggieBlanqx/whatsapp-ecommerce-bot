@@ -90,7 +90,7 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                 name: {
                     // formatted_name: 'John Smith',
                     first_name: 'Daggie',
-                    last_name: 'Blanqx',
+                    // last_name: 'Blanqx',
                     // middle_name: 'D.',
                     // suffix: 'Jr',
                     // prefix: 'Dr',
