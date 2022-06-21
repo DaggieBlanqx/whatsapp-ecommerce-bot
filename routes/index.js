@@ -10,6 +10,7 @@ const Whatsapp = new WhatsappCloudAPI({
 });
 
 const EcommerceStore = require('./../utils/ecommerce_store.js');
+let Store = new EcommerceStore();
 const CustomerSession = new Map();
 
 router.get('/meta_wa_callbackurl', (req, res) => {
@@ -35,8 +36,6 @@ router.get('/meta_wa_callbackurl', (req, res) => {
 
 router.post('/meta_wa_callbackurl', async (req, res) => {
     console.log('POST: Someone is pinging me!');
-
-    let Store = new EcommerceStore();
 
     try {
         let data = Whatsapp.parseMessage(req.body);
@@ -84,12 +83,6 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                 return { total, products, numberOfItems: products.length };
             };
             // End of cart logic
-
-            // Mark every message as read: for older messages, an error will be thrown but we can ignore it via an if-else statement that is in the catch block
-            await Whatsapp.markMessageAsRead({
-                message_id,
-            });
-
             if (typeOfMsg === 'textMessage') {
                 await Whatsapp.sendButtons({
                     message: `Hey ${nameOfSender}, \nYou are speaking to a chatbot.\nWhat do you want to do next?`,
@@ -415,6 +408,11 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                     });
                 }
             }
+
+            // Mark every message as read: for older messages, an error will be thrown but we can ignore it via an if-else statement that is in the catch block
+            await Whatsapp.markMessageAsRead({
+                message_id,
+            });
         }
 
         return res.sendStatus(200);
