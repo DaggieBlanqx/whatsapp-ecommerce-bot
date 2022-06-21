@@ -55,6 +55,79 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                     cart: [],
                 });
             }
+            let sample_contact = {
+                addresses: [
+                    {
+                        street: '1 Hacker Way',
+                        city: 'Menlo Park',
+                        state: 'CA',
+                        zip: '94025',
+                        country: 'United States',
+                        country_code: 'us',
+                        type: 'HOME',
+                    },
+                    {
+                        street: '200 Jefferson Dr',
+                        city: 'Menlo Park',
+                        state: 'CA',
+                        zip: '94025',
+                        country: 'United States',
+                        country_code: 'us',
+                        type: 'WORK',
+                    },
+                ],
+                birthday: '2012-08-18',
+                emails: [
+                    {
+                        // email: 'test@fb.com',
+                        type: 'WORK',
+                    },
+                    {
+                        email: 'test@whatsapp.com',
+                        type: 'HOME',
+                    },
+                ],
+                name: {
+                    // formatted_name: 'John Smith',
+                    first_name: 'Daggie',
+                    last_name: 'Blanqx',
+                    // middle_name: 'D.',
+                    // suffix: 'Jr',
+                    // prefix: 'Dr',
+                },
+                org: {
+                    company: 'WhatsApp',
+                    department: 'Design',
+                    title: 'Manager',
+                },
+                phones: [
+                    {
+                        phone: '+1 (940) 555-1234',
+                        type: 'HOME',
+                    },
+                    {
+                        // phone: '+1 (650) 555-1234',
+                        type: 'WORK',
+                        wa_id: '16505551234',
+                    },
+                ],
+                urls: [
+                    {
+                        url: 'https://www.facebook.com',
+                        type: 'WORK',
+                    },
+                    {
+                        url: 'https://www.whatsapp.com',
+                        type: 'HOME',
+                    },
+                ],
+            };
+            await Whatsapp.sendContact({
+                recipientNumber: recipientNumber,
+                contact_profile: sample_contact,
+            });
+
+            return res.status(200).send('OK');
 
             let addToCart = async ({ product_id, recipientNumber }) => {
                 let raw_product = await Store.getProductById(product_id);
