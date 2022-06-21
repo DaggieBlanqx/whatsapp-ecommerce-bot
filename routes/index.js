@@ -36,7 +36,6 @@ router.get('/meta_wa_callbackurl', (req, res) => {
 router.post('/meta_wa_callbackurl', async (req, res) => {
     console.log('POST: Someone is pinging me!');
 
-    // return res.status(200).send('OK'); //BMI
     let Store = new EcommerceStore();
 
     try {
@@ -117,13 +116,6 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                     let trackable_id = selectedRadioBtn?.id.split('_');
                     let [prod_, item_id, item_category, userAccount] =
                         trackable_id;
-
-                    console.log({
-                        prod_,
-                        item_id,
-                        item_category,
-                        userAccount,
-                    });
 
                     // get product from store
                     let product = await Store.getProductById(item_id);
