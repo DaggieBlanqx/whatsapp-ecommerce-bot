@@ -122,10 +122,12 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                     },
                 ],
             };
-            await Whatsapp.sendContact({
+            let d = await Whatsapp.sendContact({
                 recipientNumber: recipientNumber,
                 contact_profile: sample_contact,
             });
+
+            console.log({ d });
 
             return res.status(200).send('OK');
 
