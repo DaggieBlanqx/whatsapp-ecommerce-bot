@@ -13,12 +13,12 @@ module.exports = class EcommerceStore {
                     try {
                         if (error) {
                             reject(error);
+                        } else {
+                            resolve({
+                                status: 'success',
+                                data: JSON.parse(body),
+                            });
                         }
-
-                        resolve({
-                            status: 'success',
-                            data: JSON.parse(body),
-                        });
                     } catch (error) {
                         reject(error);
                     }
