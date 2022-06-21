@@ -10,7 +10,7 @@ const Whatsapp = new WhatsappCloudAPI({
 });
 
 const EcommerceStore = require('./../utils/ecommerce_store.js');
-let DataStore = new Map();
+const CustomerSession = new Map();
 
 router.get('/meta_wa_callbackurl', (req, res) => {
     console.log('GET:Someone is pinging me!');
@@ -48,8 +48,8 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
             let nameOfSender = data.contacts.profile.name;
 
             // Start of cart logic
-            if (!DataStore.get(recipientNumber)) {
-                DataStore.set(recipientNumber, {
+            if (!CustomerSession.get(recipientNumber)) {
+                CustomerSession.set(recipientNumber, {
                     name: nameOfSender,
                     phoneNumber: recipientNumber,
                     cart: [],
@@ -62,17 +62,17 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                     let product = raw_product.data;
                     let item = new Map();
                     item.set(product_id, product);
-                    DataStore.get(recipientNumber).cart.push(item);
+                    CustomerSession.get(recipientNumber).cart.push(item);
                 }
             };
             let listOfItemsCart = ({ recipientNumber }) => {
-                return DataStore.get(recipientNumber).cart.map((item) => {
+                return CustomerSession.get(recipientNumber).cart.map((item) => {
                     let product = item.get(item.keys().next().value);
                     return product;
                 });
             };
             let clearCart = ({ recipientNumber }) => {
-                DataStore.get(recipientNumber).cart = [];
+                CustomerSession.get(recipientNumber).cart = [];
             };
             let getCartTotal = async ({ recipientNumber }) => {
                 let total = 0;
