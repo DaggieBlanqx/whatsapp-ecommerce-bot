@@ -1,8 +1,9 @@
 'use strict';
 const router = require('express').Router();
 
-const WhatsappCloudAPI = require('whatsappcloudapi_wrapper');
-// const WhatsappCloudAPI = require('./../../whatsappcloudapi/index.js');
+// const WhatsappCloudAPI = require('whatsappcloudapi_wrapper');
+const WhatsappCloudAPI = require('./../../whatsappcloudapi/index.js');
+
 const Whatsapp = new WhatsappCloudAPI({
     accessToken: process.env.Meta_WA_accessToken,
     senderPhoneNumberId: process.env.Meta_WA_SenderPhoneNumberId,
@@ -14,42 +15,51 @@ let Store = new EcommerceStore();
 const CustomerSession = new Map();
 
 router.get('/meta_wa_callbackurl', (req, res) => {
-    console.log('GET:Someone is pinging me!');
+    try {
+        console.log('GET: Someone is pinging me!');
 
-    // Parse params from the webhook verification request
-    let mode = req.query['hub.mode'];
-    let token = req.query['hub.verify_token'];
-    let challenge = req.query['hub.challenge'];
+        let mode = req.query['hub.mode'];
+        let token = req.query['hub.verify_token'];
+        let challenge = req.query['hub.challenge'];
 
-    if (
-        mode &&
-        token &&
-        mode === 'subscribe' &&
-        process.env.Meta_WA_VerifyToken === token
-    ) {
-        // Respond with the challenge token from the request
-        return res.status(200).send(challenge);
-    } else {
-        return res.sendStatus(403);
+        if (
+            mode &&
+            token &&
+            mode === 'subscribe' &&
+            process.env.Meta_WA_VerifyToken === token
+        ) {
+            return res.status(200).send(challenge);
+        } else {
+            return res.sendStatus(403);
+        }
+    } catch (error) {
+        console.error({ error });
+        return res.sendStatus(500);
     }
 });
 
 router.post('/meta_wa_callbackurl', async (req, res) => {
     console.log('POST: Someone is pinging me!');
-
     try {
         let data = Whatsapp.parseMessage(req.body);
 
         if (data && !data.isNotificationMessage) {
-            let recipientNumber = data.message.from; // extract the phone number from the webhook payload
-            let typeOfMsg = data.msgType;
-            let message_id = data.message.id;
-            let nameOfSender = data.contacts.profile.name;
+            let recipientNumber = data.sender.phone; // extract the phone number of sender
+            let recipientName = data.sender.name;
+            let typeOfMsg = data.message.type || 'nothing'; // extract the type of message (some are text, others are images, others are responses to buttons etc...)
+            let message_id = data.message.id; // extract the message id
+
+            console.log({
+                recipientNumber,
+                recipientName,
+                typeOfMsg,
+                message_id,
+            });
 
             // Start of cart logic
             if (!CustomerSession.get(recipientNumber)) {
                 CustomerSession.set(recipientNumber, {
-                    name: nameOfSender,
+                    name: recipientName,
                     phoneNumber: recipientNumber,
                     cart: [],
                 });
@@ -82,9 +92,10 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                 return { total, products };
             };
             // End of cart logic
+
             if (typeOfMsg === 'textMessage') {
                 await Whatsapp.sendButtons({
-                    message: `Hey ${nameOfSender}, \nYou are speaking to a chatbot.\nWhat do you want to do next?`,
+                    message: `Hey ${recipientName}, \nYou are speaking to a chatbot.\nWhat do you want to do next?`,
                     recipientNumber: recipientNumber,
                     message_id,
                     listOfButtons: [
@@ -140,7 +151,7 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                     text += `_Description_: ${description}\n\n\n`;
                     text += `_Price_: $${price}\n`;
                     text += `_Category_: ${category}\n`;
-                    text += `_Rated_: ${emojiRating(rating?.rate)}\n\n`;
+                    text += `_Rated_: ${emojiRating(rating?.rate)}\n`;
                     text += `${
                         rating?.count || 0
                     } shoppers liked this product.`;
@@ -289,7 +300,7 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                     await Whatsapp.sendList({
                         recipientNumber: recipientNumber,
                         headerText: `🫰🏿 #BlackFriday Offers: ${specificCategory}`,
-                        bodyText: `\nWe have great products lined up for you based on your previous shopping history.\n\nSanta 🎅🏿 also made you a coupon code: *_${Math.floor(
+                        bodyText: `\nWe have great products lined up for you based on your previous shopping history.\n\nSanta 🎅🏿 has pre-applied a coupon code for you: *_MNP${Math.floor(
                             Math.random() * 1234578
                         )}_*.\n\nPlease select one of the products below.`,
                         footerText: 'Powered by: BMI LLC',
@@ -339,7 +350,7 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                     pdfInvoice += `\n\nTotal: $${finalBill.total}`;
                     Store.generateInvoice({
                         order_details: pdfInvoice,
-                        file_path: `./invoice_${nameOfSender}.pdf`,
+                        file_path: `./invoice_${recipientName}.pdf`,
                     });
 
                     await Whatsapp.sendButtons({
@@ -366,7 +377,7 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
 
                     await Whatsapp.sendButtons({
                         recipientNumber: recipientNumber,
-                        message: `Thank you ${nameOfSender}.\n\nYour order has been received. It will be processed shortly. We will update you on the progress of your order via Whatsapp inbox.`,
+                        message: `Thank you ${recipientName}.\n\nYour order has been received. It will be processed shortly. We will update you on the progress of your order via Whatsapp inbox.`,
                         message_id,
                         listOfButtons: [
                             {
@@ -401,8 +412,8 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                     // respond with a list of products
                     await Whatsapp.sendDocument({
                         recipientNumber: '254773841221',
-                        file_name: `Invoice - #${nameOfSender}`,
-                        file_path: `./invoice_${nameOfSender}.pdf`,
+                        file_name: `Invoice - #${recipientName}`,
+                        file_path: `./invoice_${recipientName}.pdf`,
                     });
                 }
             }
@@ -421,7 +432,7 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
         }
 
         console.error({ error });
-        return res.sendStatus(404);
+        return res.sendStatus(500);
     }
 });
 
