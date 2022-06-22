@@ -50,12 +50,7 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
             let typeOfMsg = incomingMessage.type; // extract the type of message (some are text, others are images, others are responses to buttons etc...)
             let message_id = incomingMessage.message_id; // extract the message id
 
-            console.log({
-                recipientNumber,
-                recipientName,
-                typeOfMsg,
-                message_id,
-            });
+            console.log({ incomingMessage });
 
             // Start of cart logic
             if (!CustomerSession.get(recipientNumber)) {
