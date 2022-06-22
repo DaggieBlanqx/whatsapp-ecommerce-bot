@@ -45,42 +45,42 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
 
         if (data?.isMessage) {
             let incomingMessage = data.message;
-            let recipientNumber = incomingMessage.sender.phone; // extract the phone number of sender
-            let recipientName = incomingMessage.sender.name;
+            let recipientPhone = incomingMessage.from.phone; // extract the phone number of sender
+            let recipientName = incomingMessage.from.name;
             let typeOfMsg = incomingMessage.type; // extract the type of message (some are text, others are images, others are responses to buttons etc...)
             let message_id = incomingMessage.message_id; // extract the message id
 
             console.log({ incomingMessage });
 
             // Start of cart logic
-            if (!CustomerSession.get(recipientNumber)) {
-                CustomerSession.set(recipientNumber, {
+            if (!CustomerSession.get(recipientPhone)) {
+                CustomerSession.set(recipientPhone, {
                     name: recipientName,
-                    phoneNumber: recipientNumber,
+                    phoneNumber: recipientPhone,
                     cart: [],
                 });
             }
 
-            let addToCart = async ({ product_id, recipientNumber }) => {
+            let addToCart = async ({ product_id, recipientPhone }) => {
                 let product = await Store.getProductById(product_id);
                 if (product.status === 'success') {
                     let item = new Map();
                     item.set(product_id, product.data);
-                    CustomerSession.get(recipientNumber).cart.push(item);
+                    CustomerSession.get(recipientPhone).cart.push(item);
                 }
             };
-            let listOfItemsCart = ({ recipientNumber }) => {
-                return CustomerSession.get(recipientNumber).cart.map((item) => {
+            let listOfItemsCart = ({ recipientPhone }) => {
+                return CustomerSession.get(recipientPhone).cart.map((item) => {
                     let product = item.get(item.keys().next().value);
                     return product;
                 });
             };
-            let clearCart = ({ recipientNumber }) => {
-                CustomerSession.get(recipientNumber).cart = [];
+            let clearCart = ({ recipientPhone }) => {
+                CustomerSession.get(recipientPhone).cart = [];
             };
-            let getCartTotal = async ({ recipientNumber }) => {
+            let getCartTotal = async ({ recipientPhone }) => {
                 let total = 0;
-                let products = listOfItemsCart({ recipientNumber });
+                let products = listOfItemsCart({ recipientPhone });
                 total = products.reduce(
                     (acc, product) => acc + product.price,
                     total
@@ -89,10 +89,10 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
             };
             // End of cart logic
 
-            if (typeOfMsg === 'textMessage') {
-                await Whatsapp.sendButtons({
+            if (typeOfMsg === 'text_message') {
+                await Whatsapp.sendSimpleButtons({
                     message: `Hey ${recipientName}, \nYou are speaking to a chatbot.\nWhat do you want to do next?`,
-                    recipientNumber: recipientNumber,
+                    recipientPhone: recipientPhone,
                     message_id,
                     listOfButtons: [
                         {
@@ -107,7 +107,7 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                 });
             }
 
-            if (typeOfMsg === 'listMessage') {
+            if (typeOfMsg === 'radio_button_message') {
                 // which product is the user interested in?
                 // Respond with an image of the product and a button to buy it directly from the chatbot
                 let selectedRadioBtn = incomingMessage.list_reply;
@@ -123,7 +123,7 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                     if (product.status !== 'success') {
                         await Whatsapp.sendText({
                             message: `Sorry, I could not get the product.`,
-                            recipientNumber: recipientNumber,
+                            recipientPhone: recipientPhone,
                             message_id,
                         });
                     }
@@ -153,14 +153,14 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                     } shoppers liked this product.`;
 
                     await Whatsapp.sendImage({
-                        recipientNumber,
+                        recipientPhone,
                         url: imageUrl,
-                        message: text,
+                        caption: text,
                     });
 
-                    await Whatsapp.sendButtons({
+                    await Whatsapp.sendSimpleButtons({
                         message: `Here is the product, what do you want to do next?`,
-                        recipientNumber: recipientNumber,
+                        recipientPhone: recipientPhone,
                         message_id,
                         listOfButtons: [
                             {
@@ -180,19 +180,19 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                 }
             }
 
-            if (typeOfMsg === 'replyButtonMessage') {
+            if (typeOfMsg === 'simple_button_message') {
                 let selectedButton = incomingMessage.button_reply;
                 let button_id = selectedButton?.id;
 
                 if (button_id === 'speak_to_human') {
                     // respond with a list of human resources
                     await Whatsapp.sendText({
-                        recipientNumber: recipientNumber,
+                        recipientPhone: recipientPhone,
                         message: `Not to brag, but unlike humans, chatbots are super fast⚡, we never sleep, never rest, never take lunch🍽 and can multitask.\n\nAnway don't fret, a hoooooman will 📞contact you soon.\n\nWanna blast☎ his/her phone😈?\nHere are the contact details:`,
                     });
 
                     await Whatsapp.sendContact({
-                        recipientNumber: recipientNumber,
+                        recipientPhone: recipientPhone,
                         contact_profile: {
                             addresses: [
                                 {
@@ -220,7 +220,7 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                     if (categories.status !== 'success') {
                         await Whatsapp.sendText({
                             message: `Sorry, I could not get the categories.`,
-                            recipientNumber: recipientNumber,
+                            recipientPhone: recipientPhone,
                             message_id,
                         });
                     }
@@ -234,9 +234,9 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                             };
                         });
 
-                    await Whatsapp.sendButtons({
+                    await Whatsapp.sendSimpleButtons({
                         message: `We have several categories.\nChoose one of them.`,
-                        recipientNumber: recipientNumber,
+                        recipientPhone: recipientPhone,
                         message_id,
                         listOfButtons: listOfButtons,
                     });
@@ -252,7 +252,7 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                     if (listOfProducts.status !== 'success') {
                         await Whatsapp.sendText({
                             message: `Sorry, I could not get the products.`,
-                            recipientNumber: recipientNumber,
+                            recipientPhone: recipientPhone,
                             message_id,
                         });
                     }
@@ -293,8 +293,8 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                                 .slice(0, 10),
                         },
                     ];
-                    await Whatsapp.sendList({
-                        recipientNumber: recipientNumber,
+                    await Whatsapp.sendRadioButtons({
+                        recipientPhone: recipientPhone,
                         headerText: `🫰🏿 #BlackFriday Offers: ${specificCategory}`,
                         bodyText: `\nWe have great products lined up for you based on your previous shopping history.\n\nSanta 🎅🏿 has pre-applied a coupon code for you: *_MNP${Math.floor(
                             Math.random() * 1234578
@@ -305,14 +305,14 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                 }
                 if (button_id.startsWith('add_to_cart_')) {
                     let product_id = button_id.split('add_to_cart_')[1];
-                    await addToCart({ recipientNumber, product_id });
+                    await addToCart({ recipientPhone, product_id });
                     let numberOfItemsInCart = listOfItemsCart({
-                        recipientNumber,
+                        recipientPhone,
                     }).length;
 
-                    await Whatsapp.sendButtons({
+                    await Whatsapp.sendSimpleButtons({
                         message: `Your cart has been updated.\nNumber of items in cart: ${numberOfItemsInCart}.\n\nWhat do you want to do next?`,
-                        recipientNumber: recipientNumber,
+                        recipientPhone: recipientPhone,
                         message_id,
                         listOfButtons: [
                             {
@@ -328,7 +328,7 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                 }
                 if (button_id === 'checkout') {
                     // respond with a list of products
-                    let finalBill = await getCartTotal({ recipientNumber });
+                    let finalBill = await getCartTotal({ recipientPhone });
 
                     let pdfInvoice = ``;
                     let msgInvoice = `\nYou have ${finalBill.products.length} items in your cart.\nYour cart contains:`;
@@ -349,9 +349,9 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                         file_path: `./invoice_${recipientName}.pdf`,
                     });
 
-                    await Whatsapp.sendButtons({
+                    await Whatsapp.sendSimpleButtons({
                         message: msgInvoice,
-                        recipientNumber: recipientNumber,
+                        recipientPhone: recipientPhone,
                         message_id,
                         listOfButtons: [
                             {
@@ -371,8 +371,8 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                 ) {
                     // respond with a list of products
 
-                    await Whatsapp.sendButtons({
-                        recipientNumber: recipientNumber,
+                    await Whatsapp.sendSimpleButtons({
+                        recipientPhone: recipientPhone,
                         message: `Thank you ${recipientName}.\n\nYour order has been received. It will be processed shortly. We will update you on the progress of your order via Whatsapp inbox.`,
                         message_id,
                         listOfButtons: [
@@ -387,16 +387,16 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                         ],
                     });
 
-                    clearCart({ recipientNumber });
+                    clearCart({ recipientPhone });
 
                     setTimeout(async () => {
                         let place = Store.generateRandomGeoLocation();
                         await Whatsapp.sendText({
-                            recipientNumber: recipientNumber,
+                            recipientPhone: recipientPhone,
                             message: `Your order has been fulfilled. Come and pick it up here:`,
                         });
                         await Whatsapp.sendLocation({
-                            recipientNumber: recipientNumber,
+                            recipientPhone: recipientPhone,
                             latitude: place.latitude,
                             longitude: place.longitude,
                             name: 'Mom-N-Pop Shop',
@@ -407,7 +407,7 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                 if (button_id === 'print_invoice') {
                     // respond with a list of products
                     await Whatsapp.sendDocument({
-                        recipientNumber: '254773841221',
+                        recipientPhone: '254773841221',
                         file_name: `Invoice - #${recipientName}`,
                         file_path: `./invoice_${recipientName}.pdf`,
                     });
