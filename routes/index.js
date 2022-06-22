@@ -43,23 +43,12 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
     try {
         let data = Whatsapp.parseMessage(req.body);
 
-        if (data && !data.isNotificationMessage) {
+        if (data?.isMessage) {
             let incomingMessage = data.message;
-
-            // console.log({
-            //     incomingMessage
-            // });
-            if (!incomingMessage) {
-                console.log({
-                    nothing: true,
-                    incomingMessage,
-                });
-            }
-
-            let recipientNumber = data.message.sender.phone; // extract the phone number of sender
-            let recipientName = data.message.sender.name;
-            let typeOfMsg = data.message.type || 'nothing'; // extract the type of message (some are text, others are images, others are responses to buttons etc...)
-            let message_id = data.message.id; // extract the message id
+            let recipientNumber = incomingMessage.sender.phone; // extract the phone number of sender
+            let recipientName = incomingMessage.sender.name;
+            let typeOfMsg = incomingMessage.type; // extract the type of message (some are text, others are images, others are responses to buttons etc...)
+            let message_id = incomingMessage.message_id; // extract the message id
 
             console.log({
                 recipientNumber,
@@ -126,7 +115,7 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
             if (typeOfMsg === 'listMessage') {
                 // which product is the user interested in?
                 // Respond with an image of the product and a button to buy it directly from the chatbot
-                let selectedRadioBtn = data.message.list_reply;
+                let selectedRadioBtn = incomingMessage.list_reply;
 
                 let selectionId = selectedRadioBtn.id;
 
@@ -197,7 +186,7 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
             }
 
             if (typeOfMsg === 'replyButtonMessage') {
-                let selectedButton = data.message.button_reply;
+                let selectedButton = incomingMessage.button_reply;
                 let button_id = selectedButton?.id;
 
                 if (button_id === 'speak_to_human') {

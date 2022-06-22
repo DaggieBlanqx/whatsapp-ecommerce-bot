@@ -1,0 +1,44 @@
+yarn run v1.22.5
+$ nodemon app.js
+[33m[nodemon] 2.0.16[39m
+[33m[nodemon] to restart at any time, enter `rs`[39m
+[33m[nodemon] watching path(s): *.*[39m
+[33m[nodemon] watching extensions: js,mjs,json[39m
+[32m[nodemon] starting `node app.js`[39m
+Execution environment selected is: "development"
+App now running and listening on port 9000
+POST: Someone is pinging me!
+POST: Someone is pinging me!
+POST: Someone is pinging me!
+{
+  recipientNumber: '254773841221',
+  recipientName: 'BMI',
+  typeOfMsg: 'replyButtonMessage',
+  message_id: 'wamid.HBgMMjU0NzczODQxMjIxFQIAEhgUM0VCMEJFNTVCODNFRjIyMThFNUUA'
+}
+‼  warning   WARNING: "headers" is missing.
+POST: Someone is pinging me!
+‼  warning   WARNING: "headers" is missing.
+POST: Someone is pinging me!
+‼  warning   WARNING: "headers" is missing.
+POST: Someone is pinging me!
+POST: Someone is pinging me!
+POST: Someone is pinging me!
+POST: Someone is pinging me!
+POST: Someone is pinging me!
+{
+  recipientNumber: '254773841221',
+  recipientName: 'BMI',
+  typeOfMsg: 'textMessage',
+  message_id: 'wamid.HBgMMjU0NzczODQxMjIxFQIAEhgUM0VCMEMxQjI5NURFQzUwNDM2RTQA'
+}
+‼  warning   WARNING: "headers" is missing.
+POST: Someone is pinging me!
+POST: Someone is pinging me!
+‼  warning   WARNING: "headers" is missing.
+POST: Someone is pinging me!
+POST: Someone is pinging me!
+POST: Someone is pinging me!
+POST: Someone is pinging me!
+POST: Someone is pinging me!
+Terminate batch job (Y/N)? 
