@@ -44,8 +44,20 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
         let data = Whatsapp.parseMessage(req.body);
 
         if (data && !data.isNotificationMessage) {
-            let recipientNumber = data.sender.phone; // extract the phone number of sender
-            let recipientName = data.sender.name;
+            let incomingMessage = data.message;
+
+            // console.log({
+            //     incomingMessage
+            // });
+            if (!incomingMessage) {
+                console.log({
+                    nothing: true,
+                    incomingMessage,
+                });
+            }
+
+            let recipientNumber = data.message.sender.phone; // extract the phone number of sender
+            let recipientName = data.message.sender.name;
             let typeOfMsg = data.message.type || 'nothing'; // extract the type of message (some are text, others are images, others are responses to buttons etc...)
             let message_id = data.message.id; // extract the message id
 
