@@ -92,7 +92,7 @@ sw.*
 # My zipped backup
 *.zip
 *.nevermind
-*.pdf
+# *.pdf
 #Dev Folder - before pre-release
 
 #Exclude this folder
