@@ -45,12 +45,11 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
 
         if (data?.isMessage) {
             let incomingMessage = data.message;
+            // console.log({ incomingMessage });
             let recipientPhone = incomingMessage.from.phone; // extract the phone number of sender
             let recipientName = incomingMessage.from.name;
             let typeOfMsg = incomingMessage.type; // extract the type of message (some are text, others are images, others are responses to buttons etc...)
             let message_id = incomingMessage.message_id; // extract the message id
-
-            console.log({ incomingMessage });
 
             // Start of cart logic
             if (!CustomerSession.get(recipientPhone)) {
@@ -93,7 +92,6 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                 await Whatsapp.sendSimpleButtons({
                     message: `Hey ${recipientName}, \nYou are speaking to a chatbot.\nWhat do you want to do next?`,
                     recipientPhone: recipientPhone,
-                    message_id,
                     listOfButtons: [
                         {
                             title: 'View some products',
@@ -422,11 +420,6 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
 
         return res.sendStatus(200);
     } catch (error) {
-        let msg = error?.error_data?.details;
-        if (msg && msg.includes('last-seen message in this conversation')) {
-            return res.sendStatus(200);
-        }
-
         console.error({ error });
         return res.sendStatus(500);
     }
