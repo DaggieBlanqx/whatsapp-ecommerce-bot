@@ -179,8 +179,7 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
             }
 
             if (typeOfMsg === 'simple_button_message') {
-                let selectedButton = incomingMessage.button_reply;
-                let button_id = selectedButton?.id;
+                let button_id = incomingMessage.button_reply.id;
 
                 if (button_id === 'speak_to_human') {
                     // respond with a list of human resources
@@ -412,10 +411,10 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                 }
             }
 
-            // Mark every message as read: for older messages, an error will be thrown but we can ignore it via an if-else statement that is in the catch block
-            await Whatsapp.markMessageAsRead({
-                message_id,
-            });
+            // // Mark every message as read: for older messages, an error will be thrown but we can ignore it via an if-else statement that is in the catch block
+            // await Whatsapp.markMessageAsRead({
+            //     message_id,
+            // });
         }
 
         return res.sendStatus(200);
