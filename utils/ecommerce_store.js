@@ -39,7 +39,7 @@ module.exports = class EcommerceStore {
         );
     }
 
-    generateInvoice({ order_details, file_path }) {
+    generatePDFInvoice({ order_details, file_path }) {
         const doc = new PDFDocument();
         doc.pipe(fs.createWriteStream(file_path));
         doc.fontSize(25);

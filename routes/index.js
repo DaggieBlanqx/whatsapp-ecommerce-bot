@@ -45,7 +45,6 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
 
         if (data?.isMessage) {
             let incomingMessage = data.message;
-            // console.log({ incomingMessage });
             let recipientPhone = incomingMessage.from.phone; // extract the phone number of sender
             let recipientName = incomingMessage.from.name;
             let typeOfMsg = incomingMessage.type; // extract the type of message (some are text, others are images, others are responses to buttons etc...)
@@ -54,8 +53,6 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
             // Start of cart logic
             if (!CustomerSession.get(recipientPhone)) {
                 CustomerSession.set(recipientPhone, {
-                    name: recipientName,
-                    phoneNumber: recipientPhone,
                     cart: [],
                 });
             }
@@ -63,28 +60,23 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
             let addToCart = async ({ product_id, recipientPhone }) => {
                 let product = await Store.getProductById(product_id);
                 if (product.status === 'success') {
-                    let item = new Map();
-                    item.set(product_id, product.data);
-                    CustomerSession.get(recipientPhone).cart.push(item);
+                    CustomerSession.get(recipientPhone).cart.push(product.data);
                 }
             };
-            let listOfItemsCart = ({ recipientPhone }) => {
-                return CustomerSession.get(recipientPhone).cart.map((item) => {
-                    let product = item.get(item.keys().next().value);
-                    return product;
-                });
-            };
-            let clearCart = ({ recipientPhone }) => {
-                CustomerSession.get(recipientPhone).cart = [];
-            };
-            let getCartTotal = async ({ recipientPhone }) => {
+
+            let listOfItemsInCart = ({ recipientPhone }) => {
                 let total = 0;
-                let products = listOfItemsCart({ recipientPhone });
+                let products = CustomerSession.get(recipientPhone).cart;
                 total = products.reduce(
                     (acc, product) => acc + product.price,
                     total
                 );
-                return { total, products };
+                let count = products.length;
+                return { total, products, count };
+            };
+
+            let clearCart = ({ recipientPhone }) => {
+                CustomerSession.get(recipientPhone).cart = [];
             };
             // End of cart logic
 
@@ -106,49 +98,35 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
             }
 
             if (typeOfMsg === 'radio_button_message') {
-                // which product is the user interested in?
-                // Respond with an image of the product and a button to buy it directly from the chatbot
-                let selectedRadioBtn = incomingMessage.list_reply;
+                let selectionId = incomingMessage.list_reply.id;
 
-                let selectionId = selectedRadioBtn.id;
+                if (selectionId.startsWith('product_')) {
+                    let product_id = selectionId.split('_')[1];
+                    let product = await Store.getProductById(product_id);
+                    const {
+                        price,
+                        title,
+                        description,
+                        category,
+                        image: imageUrl,
+                        rating,
+                    } = product.data;
 
-                if (selectionId.startsWith('prod_')) {
-                    let trackable_id = selectedRadioBtn?.id.split('_');
-                    let [prod_, item_id] = trackable_id;
-
-                    // get product from store
-                    let product = await Store.getProductById(item_id);
-                    if (product.status !== 'success') {
-                        await Whatsapp.sendText({
-                            message: `Sorry, I could not get the product.`,
-                            recipientPhone: recipientPhone,
-                            message_id,
-                        });
-                    }
-
-                    let product_id = product.data.id;
-                    let price = product.data.price;
-                    let title = product.data.title?.trim();
-                    let description = product.data.description?.trim();
-                    let category = product.data.category?.trim();
-                    let imageUrl = product.data.image;
-                    let rating = product.data.rating;
-                    let emojiRating = (rating) => {
-                        // generate as many emojis as are rating
-                        rating = Math.floor(rating || 0);
-                        let emojiIcon = '⭐';
+                    let emojiRating = (rvalue) => {
+                        rvalue = Math.floor(rvalue || 0); // generate as many star emojis as whole ratings
                         let output = [];
-                        for (var i = 0; i < rating; i++) output.push(emojiIcon);
-                        return output.join('');
+                        for (var i = 0; i < rvalue; i++) output.push('⭐');
+                        return output.length ? output.join('') : 'N/A';
                     };
-                    let text = `_Title_: *${title}*\n\n\n`;
-                    text += `_Description_: ${description}\n\n\n`;
+
+                    let text = `_Title_: *${title.trim()}*\n\n\n`;
+                    text += `_Description_: ${description.trim()}\n\n\n`;
                     text += `_Price_: $${price}\n`;
                     text += `_Category_: ${category}\n`;
-                    text += `_Rated_: ${emojiRating(rating?.rate)}\n`;
                     text += `${
                         rating?.count || 0
-                    } shoppers liked this product.`;
+                    } shoppers liked this product.\n`;
+                    text += `_Rated_: ${emojiRating(rating?.rate)}\n`;
 
                     await Whatsapp.sendImage({
                         recipientPhone,
@@ -217,98 +195,70 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                 }
                 if (button_id === 'see_categories') {
                     let categories = await Store.getAllCategories();
-                    if (categories.status !== 'success') {
-                        await Whatsapp.sendText({
-                            message: `Sorry, I could not get the categories.`,
-                            recipientPhone: recipientPhone,
-                            message_id,
-                        });
-                    }
-
-                    let listOfButtons = categories.data
-                        .slice(0, 3)
-                        .map((category) => {
-                            return {
-                                title: category,
-                                id: `category_${category}`,
-                            };
-                        });
 
                     await Whatsapp.sendSimpleButtons({
                         message: `We have several categories.\nChoose one of them.`,
                         recipientPhone: recipientPhone,
                         message_id,
-                        listOfButtons: listOfButtons,
+                        listOfButtons: categories.data
+                            .slice(0, 3)
+                            .map((category) => ({
+                                title: category,
+                                id: `category_${category}`,
+                            })),
                     });
                 }
 
                 if (button_id.startsWith('category_')) {
-                    let specificCategory = button_id.split('category_')[1];
-                    // respond with a list of products
+                    let selectedCategory = button_id.split('category_')[1];
                     let listOfProducts = await Store.getProductsInCategory(
-                        specificCategory
+                        selectedCategory
                     );
-
-                    if (listOfProducts.status !== 'success') {
-                        await Whatsapp.sendText({
-                            message: `Sorry, I could not get the products.`,
-                            recipientPhone: recipientPhone,
-                            message_id,
-                        });
-                    }
 
                     let listOfSections = [
                         {
-                            title: `🏆 Top 3: ${specificCategory}`.substring(
+                            title: `🏆 Top 3: ${selectedCategory}`.substring(
                                 0,
                                 24
                             ),
                             rows: listOfProducts.data
                                 .map((product) => {
-                                    let trackable_id = `prod_${product.id
-                                        .toString()
-                                        .substring(0, 256)}`;
-                                    let title = (() =>
-                                        `${product.title.substring(
+                                    let id = `product_${product.id}`.substring(
+                                        0,
+                                        256
+                                    );
+                                    let title = product.title.substring(0, 21);
+                                    let description =
+                                        `${product.price}\n${product.description}`.substring(
                                             0,
-                                            21
-                                        )}...`)();
-                                    let description = (() => {
-                                        let price = product.price;
-                                        let description = product.description;
-                                        let output =
-                                            `$${price}\n${description}`.substring(
-                                                0,
-                                                69
-                                            );
-                                        return `${output}...`;
-                                    })();
+                                            68
+                                        );
 
                                     return {
-                                        id: trackable_id,
-                                        title,
-                                        description,
+                                        id,
+                                        title: `${title}...`,
+                                        description: `$${description}...`,
                                     };
                                 })
                                 .slice(0, 10),
                         },
                     ];
+
                     await Whatsapp.sendRadioButtons({
                         recipientPhone: recipientPhone,
-                        headerText: `🫰🏿 #BlackFriday Offers: ${specificCategory}`,
-                        bodyText: `\nWe have great products lined up for you based on your previous shopping history.\n\nSanta 🎅🏿 has pre-applied a coupon code for you: *_MNP${Math.floor(
-                            Math.random() * 1234578
-                        )}_*.\n\nPlease select one of the products below.`,
+                        headerText: `#BlackFriday Offers: ${selectedCategory}`,
+                        bodyText: `Our Santa 🎅🏿 has lined up some great products for you based on your previous shopping history.\n\nPlease select one of the products below:`,
                         footerText: 'Powered by: BMI LLC',
                         listOfSections,
                     });
                 }
+
                 if (button_id.startsWith('add_to_cart_')) {
                     let product_id = button_id.split('add_to_cart_')[1];
                     await addToCart({ recipientPhone, product_id });
-                    let numberOfItemsInCart = listOfItemsCart({
+                    let numberOfItemsInCart = listOfItemsInCart({
                         recipientPhone,
-                    }).length;
+                    }).count;
 
                     await Whatsapp.sendSimpleButtons({
                         message: `Your cart has been updated.\nNumber of items in cart: ${numberOfItemsInCart}.\n\nWhat do you want to do next?`,
@@ -326,54 +276,31 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                         ],
                     });
                 }
-                if (button_id === 'checkout') {
-                    // respond with a list of products
-                    let finalBill = await getCartTotal({ recipientPhone });
 
-                    let pdfInvoice = ``;
-                    let msgInvoice = `\nYou have ${finalBill.products.length} items in your cart.\nYour cart contains:`;
+                if (button_id === 'checkout') {
+                    let finalBill = listOfItemsInCart({ recipientPhone });
+                    let invoiceText = `List of items in your cart:\n`;
 
                     finalBill.products.forEach((item, index) => {
-                        msgInvoice += `\n👉🏿 ${item.title} - $${item.price}`;
-                        pdfInvoice += `\n#${index + 1}: ${item.title} - $${
-                            item.price
-                        }`;
+                        let serial = index + 1;
+                        invoiceText += `\n#${serial}: ${item.title} @ $${item.price}`;
                     });
 
-                    msgInvoice += `\n\nTotal: $${finalBill.total}`;
-                    msgInvoice += `\n\nPlease select one of the following options:`;
+                    invoiceText += `\n\nTotal: $${finalBill.total}`;
 
-                    pdfInvoice += `\n\nTotal: $${finalBill.total}`;
-                    Store.generateInvoice({
-                        order_details: pdfInvoice,
+                    Store.generatePDFInvoice({
+                        order_details: invoiceText,
                         file_path: `./invoice_${recipientName}.pdf`,
                     });
 
-                    await Whatsapp.sendSimpleButtons({
-                        message: msgInvoice,
+                    await Whatsapp.sendText({
+                        message: invoiceText,
                         recipientPhone: recipientPhone,
-                        message_id,
-                        listOfButtons: [
-                            {
-                                title: 'Pay with cash',
-                                id: 'pay_with_cash',
-                            },
-                            {
-                                title: 'Pay later',
-                                id: 'pay_later',
-                            },
-                        ],
                     });
-                }
-                if (
-                    button_id === 'pay_with_cash' ||
-                    button_id === 'pay_later'
-                ) {
-                    // respond with a list of products
 
                     await Whatsapp.sendSimpleButtons({
                         recipientPhone: recipientPhone,
-                        message: `Thank you ${recipientName}.\n\nYour order has been received. It will be processed shortly. We will update you on the progress of your order via Whatsapp inbox.`,
+                        message: `Thank you for shopping with us, ${recipientName}.\n\nYour order has been received & will be processed shortly.`,
                         message_id,
                         listOfButtons: [
                             {
@@ -381,43 +308,44 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                                 id: 'see_categories',
                             },
                             {
-                                title: 'Print invoice',
+                                title: 'Print my invoice',
                                 id: 'print_invoice',
                             },
                         ],
                     });
 
                     clearCart({ recipientPhone });
-
-                    setTimeout(async () => {
-                        let place = Store.generateRandomGeoLocation();
-                        await Whatsapp.sendText({
-                            recipientPhone: recipientPhone,
-                            message: `Your order has been fulfilled. Come and pick it up here:`,
-                        });
-                        await Whatsapp.sendLocation({
-                            recipientPhone: recipientPhone,
-                            latitude: place.latitude,
-                            longitude: place.longitude,
-                            name: 'Mom-N-Pop Shop',
-                            address: place.address,
-                        });
-                    }, 5000);
                 }
+
                 if (button_id === 'print_invoice') {
-                    // respond with a list of products
+                    // Send the PDF invoice
                     await Whatsapp.sendDocument({
-                        recipientPhone: '254773841221',
-                        file_name: `Invoice - #${recipientName}`,
+                        recipientPhone,
+                        caption: `Mom-N-Pop Shop invoice #${recipientName}`,
                         file_path: `./invoice_${recipientName}.pdf`,
+                    });
+
+                    // Send the location of our pickup station to the customer, so they can come and pick their order
+                    let warehouse = Store.generateRandomGeoLocation();
+
+                    await Whatsapp.sendText({
+                        recipientPhone: recipientPhone,
+                        message: `Your order has been fulfilled. Come and pick it up, as you pay, here:`,
+                    });
+
+                    await Whatsapp.sendLocation({
+                        recipientPhone,
+                        latitude: warehouse.latitude,
+                        longitude: warehouse.longitude,
+                        address: warehouse.address,
+                        name: 'Mom-N-Pop Shop',
                     });
                 }
             }
 
-            // // Mark every message as read: for older messages, an error will be thrown but we can ignore it via an if-else statement that is in the catch block
-            // await Whatsapp.markMessageAsRead({
-            //     message_id,
-            // });
+            await Whatsapp.markMessageAsRead({
+                message_id,
+            });
         }
 
         return res.sendStatus(200);
