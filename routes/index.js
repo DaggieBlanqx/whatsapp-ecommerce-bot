@@ -208,6 +208,9 @@ router.post('/meta_wa_callbackurl', async (req, res) => {
                                 {
                                     phone: '+1 (555) 025-3483',
                                 },
+                                {
+                                    phone: '+254 712345678',
+                                },
                             ],
                         },
                     });
