@@ -2,7 +2,6 @@
 const router = require('express').Router();
 
 const WhatsappCloudAPI = require('whatsappcloudapi_wrapper');
-// const WhatsappCloudAPI = require('./../../whatsappcloudapi/index.js');
 
 const Whatsapp = new WhatsappCloudAPI({
     accessToken: process.env.Meta_WA_accessToken,
