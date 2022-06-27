@@ -2,10 +2,11 @@
     "name": "ecommerce_bot",
     "version": "1.0.0",
     "description": "",
-    "main": "index.js",
+    "main": "app.js",
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
-        "start": "nodemon app.js",
+        "start": "node app.js",
+        "devstart": "nodemon app.js",
         "prettier": "prettier --ignore-path .prettierignore --config prettier.config.js --write .",
         "quickpush": "cls && git status && git add * && git commit * -m \"Updated Code\" && git push"
     },
