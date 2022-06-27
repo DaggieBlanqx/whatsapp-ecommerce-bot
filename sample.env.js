@@ -6,7 +6,7 @@ const production = {
 const development = {
     ...process.env,
     NODE_ENV: process.env.NODE_ENV || 'development',
-    // PORT: '', 
+    // PORT: '',
     // Meta_WA_VerifyToken: '',
     // Meta_WA_accessToken: '',
     // Meta_WA_SenderPhoneNumberId: '',
